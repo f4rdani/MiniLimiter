@@ -196,7 +196,10 @@ class TrafficShaper:
             blocker_on = self.rules_mgr.master_blocker_enabled
 
             app_name = self.tracker.get_app_for_port(local_port)
-            rule = self.rules_mgr.get_rule(app_name) if (app_name and limiter_on) else None
+            # NOTE: rule harus diambil bila LIMITER **atau** BLOCKER aktif.
+            # Bug lama: hanya cek limiter_on, sehingga blocker per-app ikut mati
+            # saat Limiter Off (meski Blocker On + rule block ada).
+            rule = self.rules_mgr.get_rule(app_name) if (app_name and (limiter_on or blocker_on)) else None
             gl = self.rules_mgr.get_global_limit()
 
             # 1. Blocker: global dulu, lalu per-app. DROP = tidak reinject & tidak catat.

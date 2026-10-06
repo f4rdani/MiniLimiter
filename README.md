@@ -11,8 +11,8 @@ MiniLimiter is a free, lightweight, per-application internet speed limiter (*tra
 - **Device-Level Limit**: click the `- YOUR-PC` row to cap the whole computer (e.g. `4 MB/s` for everything — verified with web speed tests).
 - **Info View & Inline Rules Form**: click any application to see details and set Limit or Blocker (In/Out) with quick presets (`512 KB/s`, `1 MB/s`, `2 MB/s`, `5 MB/s`).
 - **Real-Time Traffic Chart**: download (green) and upload (red/orange) curves with a live limit ceiling line.
-- **Rule List**: review, enable/disable, or delete the limits you created.
-- **Blocker**: per-application block list showing every active block rule.
+- **Rules (Limit + Blocker)**: satu daftar semua aturan aktif dengan filter `All | Limit | Blocker`; review, enable/disable, atau delete limit/block yang dibuat.
+- **Blocker**: putus koneksi per-aplikasi (drop paket via WinDivert, perlu Admin + `Blocker On`); butuh `Limiter On`? Tidak — blocker jalan sendiri meski Limiter Off.
 - **Application List**: every running process (foreground and background), click to inspect.
 - **Network List**: active adapters (Wi-Fi, Ethernet, IP address, SSID, gateway, connection state).
 - **Sortable, resizable tables**: click any column header to sort; drag splitters and column borders; `Reset view` restores the default layout.
@@ -95,8 +95,8 @@ MiniLimiter/
 │   │   ├── info_view.py       # Top-right panel: details & rule editor
 │   │   ├── main_window.py     # Main window (toolbar, tabs, layout, status bar)
 │   │   ├── network_list_tab.py# Network adapter list
-│   │   ├── rule_list_tab.py   # Active rules table
-│   │   ├── blocker_tab.py     # Active block rules table
+│   │   ├── rule_list_tab.py   # Rules table (Limit+Blocker + filter All/Limit/Blocker)
+│   │   ├── blocker_tab.py     # Deprecated shim -> RuleListTab (backward-compat)
 │   │   ├── application_list_tab.py # All running processes
 │   │   ├── theme.py           # Dark theme + shared widget styling
 │   │   └── traffic_chart.py   # Real-time canvas chart

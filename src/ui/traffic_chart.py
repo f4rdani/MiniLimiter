@@ -29,22 +29,27 @@ class TrafficChart(ctk.CTkFrame):
         self._build()
 
     def _build(self):
-        top = ctk.CTkFrame(self, fg_color="transparent", height=22)
-        top.pack(fill="x", padx=6, pady=(4, 0))
+        from src.ui.theme import RADIUS_MD, BORDER_COLOR
+        card = ctk.CTkFrame(self, fg_color="#202020", corner_radius=RADIUS_MD,
+                            border_width=1, border_color=BORDER_COLOR)
+        card.pack(fill="both", expand=True, padx=6, pady=6)
+        top = ctk.CTkFrame(card, fg_color="transparent", height=26)
+        top.pack(fill="x", padx=10, pady=(8, 0))
+        ctk.CTkLabel(top, text="●", font=(FONT_FAMILY, 10), text_color=COLOR_DOWNLOAD, width=16).pack(side="left")
         ctk.CTkLabel(top, text="Traffic chart", font=(FONT_FAMILY, 11, "bold"), text_color=TEXT_MUTED).pack(side="left")
 
-        leg = ctk.CTkFrame(self, fg_color="transparent", height=18)
-        leg.pack(fill="x", padx=8, pady=(2, 0))
-        self.lbl_dl = ctk.CTkLabel(leg, text="Download (0 B)", font=(FONT_FAMILY, 11), text_color=COLOR_DOWNLOAD)
+        leg = ctk.CTkFrame(card, fg_color="transparent", height=18)
+        leg.pack(fill="x", padx=10, pady=(2, 0))
+        self.lbl_dl = ctk.CTkLabel(leg, text="Download (0 B)", font=(FONT_FAMILY, 11, "bold"), text_color=COLOR_DOWNLOAD)
         self.lbl_dl.pack(side="left")
-        self.lbl_mid = ctk.CTkLabel(leg, text="", font=(FONT_FAMILY, 11), text_color=TEXT_MUTED)
-        self.lbl_mid.pack(side="left", expand=True)
-        self.lbl_ul = ctk.CTkLabel(leg, text="Upload (0 B)", font=(FONT_FAMILY, 11), text_color=COLOR_UPLOAD)
+        self.lbl_mid = ctk.CTkLabel(leg, text="", font=(FONT_FAMILY, 10), text_color=TEXT_MUTED)
+        self.lbl_mid.pack(side="left", expand=True, padx=6)
+        self.lbl_ul = ctk.CTkLabel(leg, text="Upload (0 B)", font=(FONT_FAMILY, 11, "bold"), text_color=COLOR_UPLOAD)
         self.lbl_ul.pack(side="right")
 
-        wrap = ctk.CTkFrame(self, fg_color="transparent")
-        wrap.pack(fill="both", expand=True, padx=4, pady=2)
-        self.canvas = tk.Canvas(wrap, bg="#1e1e1e", highlightthickness=0, bd=0)
+        wrap = ctk.CTkFrame(card, fg_color="transparent")
+        wrap.pack(fill="both", expand=True, padx=6, pady=(2, 6))
+        self.canvas = tk.Canvas(wrap, bg="#202020", highlightthickness=0, bd=0)
         self.canvas.pack(fill="both", expand=True)
         self.canvas.bind("<Configure>", lambda _e: self.redraw())
 

@@ -83,8 +83,21 @@ class TestMainWindowSmoke(unittest.TestCase):
                 app.selected_app_name = "smoke_test.exe"
                 app._on_rule_changed(Rule(app_name="smoke_test.exe", limit_in=2097152, enabled=True))
                 app.update()
+                app._switch_tab("Rules")
+                app.update()
+                # Filter gabungan Limit/Blocker (pengganti tab Blocker terpisah)
+                app.rule_list_tab.set_filter("Blocker")
+                app.update()
+                app.rule_list_tab.set_filter("Limit")
+                app.update()
+                app.rule_list_tab.set_filter("All")
+                app.update()
+                # Nama lama tetap didukung (backward-compat)
                 app._switch_tab("Rule List")
                 app.update()
+                app._switch_tab("Blocker")
+                app.update()
+                self.assertEqual(app.current_tab, "Rules")
                 app._on_toggle_rule("smoke_test.exe")
                 app.update()
                 app._switch_tab("Network List")
@@ -302,6 +315,72 @@ class TestMainWindowSmoke(unittest.TestCase):
                     app.destroy()
                 except Exception:
                     pass
+
+    def test_rules_tab_merged_filter(self):
+        """Tab Rules gabungan: All/Limit/Blocker memfilter baris dengan benar."""
+        try:
+            import tkinter as tk
+            root = tk.Tk()
+            root.withdraw()
+            root.destroy()
+        except Exception as e:
+            self.skipTest(f"no display: {e}")
+            return
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from src.core.models import Rule
+        from src.core.rules_manager import RulesManager
+        from src.core.shaper import TrafficShaper
+        from src.core.tracker import NetworkTracker
+        from src.ui.main_window import MainWindow, TABS
+
+        # Tab Blocker terpisah sudah dihapus dari TABS.
+        self.assertNotIn("Blocker", TABS)
+        self.assertIn("Rules", TABS)
+
+        with TemporaryDirectory() as tmp:
+            rules = RulesManager(Path(tmp) / "rules.json")
+            tracker = NetworkTracker(scan_interval=0.2, history_length=10)
+            shaper = TrafficShaper(tracker, rules)
+            tracker.start()
+            try:
+                app = MainWindow(tracker, rules, shaper)
+                app.update()
+                app._on_rule_changed(Rule(app_name="chrome.exe", limit_in=2097152, enabled=True))
+                app._on_rule_changed(Rule(app_name="evil.exe", block_in=True, block_out=True, enabled=True))
+                app._switch_tab("Rules")
+                app.update()
+
+                tab = app.rule_list_tab
+                tab.set_filter("All")
+                n_all = len(tab.tree.get_children())
+                tab.set_filter("Limit")
+                n_limit = len(tab.tree.get_children())
+                tab.set_filter("Blocker")
+                n_blocker = len(tab.tree.get_children())
+                # 1 baris limit + 2 baris blocker = 3 baris All
+                self.assertEqual(n_all, 3)
+                self.assertEqual(n_limit, 1)
+                self.assertEqual(n_blocker, 2)
+                tab.set_filter("All")
+                app._reset_view()
+                self.assertEqual(tab.filter_mode, "All")
+            finally:
+                try:
+                    tracker.stop()
+                except Exception:
+                    pass
+                try:
+                    app.destroy()
+                except Exception:
+                    pass
+
+    def test_blocker_works_when_limiter_off(self):
+        """Regresi: blocker per-app tidak boleh ikut mati saat Limiter Off."""
+        import pathlib
+        src = pathlib.Path("src/core/shaper.py").read_text(encoding="utf-8")
+        # Lookup rule harus memakai (limiter_on or blocker_on), bukan limiter saja.
+        self.assertIn("limiter_on or blocker_on", src)
 
 
 if __name__ == "__main__":

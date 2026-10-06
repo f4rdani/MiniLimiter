@@ -10,6 +10,10 @@ venv/
 # Runtime / local state
 config/rules.json
 
+# Docs: abaikan semua markdown kecuali README.md
+*.md
+!README.md
+
 # OS / editors
 Thumbs.db
 Desktop.ini

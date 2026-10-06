@@ -33,10 +33,12 @@ class InfoView(ctk.CTkFrame):
 
     # ---------- shell ----------
     def _build_shell(self):
-        top = ctk.CTkFrame(self, fg_color="transparent", height=26)
-        top.pack(fill="x", padx=6, pady=(4, 0))
-        ctk.CTkLabel(top, text="Info View", font=(FONT_FAMILY, 11, "bold"), text_color=TEXT_MAIN).pack(side="left")
-        self.body = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        top = ctk.CTkFrame(self, fg_color="transparent", height=30)
+        top.pack(fill="x", padx=8, pady=(6, 0))
+        dot = ctk.CTkLabel(top, text="●", font=(FONT_FAMILY, 10), text_color="#7cbb00", width=16)
+        dot.pack(side="left")
+        ctk.CTkLabel(top, text="Info View", font=(FONT_FAMILY, 12, "bold"), text_color=TEXT_MAIN).pack(side="left")
+        self.body = ctk.CTkScrollableFrame(self, fg_color="transparent", corner_radius=0)
         self.body.pack(fill="both", expand=True, padx=2, pady=2)
 
     def _clear(self):
@@ -45,24 +47,26 @@ class InfoView(ctk.CTkFrame):
         self._sections = {}
 
     def _section(self, title: str, collapsed: bool = False):
+        from src.ui.theme import RADIUS_MD
         head = ctk.CTkFrame(self.body, fg_color="transparent")
-        head.pack(fill="x", padx=6, pady=(8, 2))
-        arrow = ctk.CTkLabel(head, text="﹀" if collapsed else "︿", font=(FONT_FAMILY, 11), text_color=TEXT_MUTED, width=18)
+        head.pack(fill="x", padx=8, pady=(10, 2))
+        arrow = ctk.CTkLabel(head, text="▼" if collapsed else "▲", font=(FONT_FAMILY, 10), text_color=TEXT_MUTED, width=18)
         arrow.pack(side="left")
-        ctk.CTkLabel(head, text=title, font=(FONT_FAMILY, 11), text_color=TEXT_MUTED).pack(side="left")
-        box = ctk.CTkFrame(self.body, fg_color=BG_TABLE, corner_radius=3, border_width=1, border_color=BORDER_COLOR)
+        ctk.CTkLabel(head, text=title.upper(), font=(FONT_FAMILY, 10, "bold"), text_color=TEXT_MUTED).pack(side="left", padx=(2, 0))
+        box = ctk.CTkFrame(self.body, fg_color=BG_TABLE, corner_radius=RADIUS_MD,
+                            border_width=1, border_color=BORDER_COLOR)
         if not collapsed:
-            box.pack(fill="x", padx=6, pady=2)
+            box.pack(fill="x", padx=8, pady=2)
         self._sections[title] = (head, box, collapsed)
 
         def _toggle(_e=None):
             h, b, c = self._sections[title]
             if c:
-                b.pack(fill="x", padx=6, pady=2)
-                arrow.configure(text="︿")
+                b.pack(fill="x", padx=8, pady=2)
+                arrow.configure(text="▲")
             else:
                 b.pack_forget()
-                arrow.configure(text="﹀")
+                arrow.configure(text="▼")
             self._sections[title] = (h, b, not c)
         head.bind("<Button-1>", _toggle)
         arrow.bind("<Button-1>", _toggle)
@@ -111,29 +115,42 @@ class InfoView(ctk.CTkFrame):
         except Exception:
             host = "This computer"
         self._title("Device", f"{host} (-) — limit applies to ALL traffic")
+        from src.ui.theme import INPUT_BG, INPUT_BORDER, PRIMARY_BG, PRIMARY_HOVER, RADIUS_MD, RADIUS_PILL
         box = self._section("Rules")
         grid = ctk.CTkFrame(box, fg_color="transparent")
-        grid.pack(fill="x", padx=6, pady=4)
+        grid.pack(fill="x", padx=8, pady=6)
         for c, t in enumerate(("Type", "In", "Out")):
-            ctk.CTkLabel(grid, text=t, font=(FONT_FAMILY, 11, "bold"), text_color=TEXT_MUTED).grid(row=0, column=c, padx=4, pady=2, sticky="w")
-        ctk.CTkLabel(grid, text="Blocker", font=(FONT_FAMILY, 11), text_color=TEXT_MAIN).grid(row=1, column=0, padx=4, pady=3, sticky="w")
-        self.chk_block_in = ctk.CTkCheckBox(grid, text="Block", font=(FONT_FAMILY, 11), width=20)
-        self.chk_block_in.grid(row=1, column=1, padx=4, pady=3, sticky="w")
-        self.chk_block_out = ctk.CTkCheckBox(grid, text="Block", font=(FONT_FAMILY, 11), width=20)
-        self.chk_block_out.grid(row=1, column=2, padx=4, pady=3, sticky="w")
-        ctk.CTkLabel(grid, text="Limit", font=(FONT_FAMILY, 11, "bold"), text_color=TEXT_MAIN).grid(row=2, column=0, padx=4, pady=3, sticky="w")
+            ctk.CTkLabel(grid, text=t, font=(FONT_FAMILY, 10, "bold"), text_color=TEXT_MUTED).grid(row=0, column=c, padx=4, pady=2, sticky="w")
+        ctk.CTkLabel(grid, text="Blocker", font=(FONT_FAMILY, 11), text_color=TEXT_MAIN).grid(row=1, column=0, padx=4, pady=4, sticky="w")
+        self.chk_block_in = ctk.CTkCheckBox(grid, text="Block", font=(FONT_FAMILY, 11),
+                                            fg_color=PRIMARY_BG, hover_color=PRIMARY_HOVER,
+                                            border_color=INPUT_BORDER, text_color=TEXT_MAIN)
+        self.chk_block_in.grid(row=1, column=1, padx=4, pady=4, sticky="w")
+        self.chk_block_out = ctk.CTkCheckBox(grid, text="Block", font=(FONT_FAMILY, 11),
+                                             fg_color=PRIMARY_BG, hover_color=PRIMARY_HOVER,
+                                             border_color=INPUT_BORDER, text_color=TEXT_MAIN)
+        self.chk_block_out.grid(row=1, column=2, padx=4, pady=4, sticky="w")
+        ctk.CTkLabel(grid, text="Limit", font=(FONT_FAMILY, 11, "bold"), text_color=TEXT_MAIN).grid(row=2, column=0, padx=4, pady=4, sticky="w")
         fi = ctk.CTkFrame(grid, fg_color="transparent")
-        fi.grid(row=2, column=1, padx=2, pady=3, sticky="w")
-        self.chk_limit_in = ctk.CTkCheckBox(fi, text="", width=18)
+        fi.grid(row=2, column=1, padx=2, pady=4, sticky="w")
+        self.chk_limit_in = ctk.CTkCheckBox(fi, text="", width=20, fg_color=PRIMARY_BG,
+                                            hover_color=PRIMARY_HOVER, border_color=INPUT_BORDER)
         self.chk_limit_in.pack(side="left")
-        self.entry_limit_in = ctk.CTkEntry(fi, width=70, height=22, font=(FONT_FAMILY, 11), placeholder_text="4 MB/s")
-        self.entry_limit_in.pack(side="left", padx=(2, 0))
+        self.entry_limit_in = ctk.CTkEntry(fi, width=86, height=28, font=(FONT_FAMILY, 11),
+                                           corner_radius=RADIUS_MD, fg_color=INPUT_BG,
+                                           border_color=INPUT_BORDER, text_color=TEXT_MAIN,
+                                           placeholder_text="4 MB/s", placeholder_text_color=TEXT_MUTED)
+        self.entry_limit_in.pack(side="left", padx=(4, 0))
         fo = ctk.CTkFrame(grid, fg_color="transparent")
-        fo.grid(row=2, column=2, padx=2, pady=3, sticky="w")
-        self.chk_limit_out = ctk.CTkCheckBox(fo, text="", width=18)
+        fo.grid(row=2, column=2, padx=2, pady=4, sticky="w")
+        self.chk_limit_out = ctk.CTkCheckBox(fo, text="", width=20, fg_color=PRIMARY_BG,
+                                             hover_color=PRIMARY_HOVER, border_color=INPUT_BORDER)
         self.chk_limit_out.pack(side="left")
-        self.entry_limit_out = ctk.CTkEntry(fo, width=70, height=22, font=(FONT_FAMILY, 11), placeholder_text="Not set")
-        self.entry_limit_out.pack(side="left", padx=(2, 0))
+        self.entry_limit_out = ctk.CTkEntry(fo, width=86, height=28, font=(FONT_FAMILY, 11),
+                                            corner_radius=RADIUS_MD, fg_color=INPUT_BG,
+                                            border_color=INPUT_BORDER, text_color=TEXT_MAIN,
+                                            placeholder_text="Not set", placeholder_text_color=TEXT_MUTED)
+        self.entry_limit_out.pack(side="left", padx=(4, 0))
         # prefill
         try:
             if global_dict.get("block_in"):
@@ -151,15 +168,21 @@ class InfoView(ctk.CTkFrame):
         except Exception:
             pass
         bar = ctk.CTkFrame(box, fg_color="transparent")
-        bar.pack(fill="x", padx=6, pady=(4, 2))
-        ctk.CTkButton(bar, text="Apply Rule", height=24, font=(FONT_FAMILY, 11, "bold"), command=self._apply_device).pack(side="left", expand=True, fill="x", padx=(0, 4))
-        ctk.CTkButton(bar, text="Clear", width=56, height=24, font=(FONT_FAMILY, 11), fg_color="#444444", hover_color="#555555", command=self._clear_device).pack(side="left")
+        bar.pack(fill="x", padx=8, pady=(6, 2))
+        ctk.CTkButton(bar, text="✓ Apply Rule", height=30, font=(FONT_FAMILY, 11, "bold"),
+                      corner_radius=RADIUS_MD, fg_color=PRIMARY_BG, hover_color=PRIMARY_HOVER,
+                      text_color="#ffffff", command=self._apply_device).pack(side="left", expand=True, fill="x", padx=(0, 6))
+        ctk.CTkButton(bar, text="Clear", width=64, height=30, font=(FONT_FAMILY, 11),
+                      corner_radius=RADIUS_MD, fg_color="#3a3a3a", hover_color="#4a4a4a",
+                      text_color=TEXT_MAIN, command=self._clear_device).pack(side="left")
         prow = ctk.CTkFrame(box, fg_color="transparent")
-        prow.pack(fill="x", padx=6, pady=(2, 6))
-        ctk.CTkLabel(prow, text="Presets:", font=(FONT_FAMILY, 10), text_color=TEXT_MUTED).pack(side="left")
+        prow.pack(fill="x", padx=8, pady=(4, 8))
+        ctk.CTkLabel(prow, text="Presets:", font=(FONT_FAMILY, 10), text_color=TEXT_MUTED).pack(side="left", padx=(0, 4))
         for p in ("1 MB/s", "2 MB/s", "4 MB/s", "10 MB/s"):
-            ctk.CTkButton(prow, text=p, width=62, height=20, font=(FONT_FAMILY, 10), fg_color="#333333",
-                          hover_color="#444444", command=lambda v=p: self._preset_device(v)).pack(side="left", padx=2)
+            ctk.CTkButton(prow, text=p, width=70, height=24, font=(FONT_FAMILY, 10),
+                          corner_radius=RADIUS_PILL, fg_color="#2f2f2f",
+                          hover_color="#3d3d3d", text_color=TEXT_MAIN,
+                          command=lambda v=p: self._preset_device(v)).pack(side="left", padx=2)
         tbox = self._section("Tools")
         trow = ctk.CTkFrame(tbox, fg_color="transparent")
         trow.pack(fill="x")
@@ -334,31 +357,44 @@ class InfoView(ctk.CTkFrame):
 
     # ---------- rules editor (grid ala NetLimiter) ----------
     def _rules_editor(self, default_in="2 MB/s"):
+        from src.ui.theme import INPUT_BG, INPUT_BORDER, PRIMARY_BG, PRIMARY_HOVER, RADIUS_MD, RADIUS_PILL
         box = self._section("Rules")
         grid = ctk.CTkFrame(box, fg_color="transparent")
-        grid.pack(fill="x", padx=6, pady=4)
+        grid.pack(fill="x", padx=8, pady=6)
         for c, t in enumerate(("Type", "In", "Out")):
-            ctk.CTkLabel(grid, text=t, font=(FONT_FAMILY, 11, "bold"), text_color=TEXT_MUTED).grid(row=0, column=c, padx=4, pady=2, sticky="w")
+            ctk.CTkLabel(grid, text=t, font=(FONT_FAMILY, 10, "bold"), text_color=TEXT_MUTED).grid(row=0, column=c, padx=4, pady=2, sticky="w")
         # Blocker
-        ctk.CTkLabel(grid, text="Blocker", font=(FONT_FAMILY, 11), text_color=TEXT_MAIN).grid(row=1, column=0, padx=4, pady=3, sticky="w")
-        self.chk_block_in = ctk.CTkCheckBox(grid, text="○ Not set", font=(FONT_FAMILY, 11), width=20)
-        self.chk_block_in.grid(row=1, column=1, padx=4, pady=3, sticky="w")
-        self.chk_block_out = ctk.CTkCheckBox(grid, text="○ Not set", font=(FONT_FAMILY, 11), width=20)
-        self.chk_block_out.grid(row=1, column=2, padx=4, pady=3, sticky="w")
+        ctk.CTkLabel(grid, text="Blocker", font=(FONT_FAMILY, 11), text_color=TEXT_MAIN).grid(row=1, column=0, padx=4, pady=4, sticky="w")
+        self.chk_block_in = ctk.CTkCheckBox(grid, text="Block", font=(FONT_FAMILY, 11),
+                                            fg_color=PRIMARY_BG, hover_color=PRIMARY_HOVER,
+                                            border_color=INPUT_BORDER, text_color=TEXT_MAIN)
+        self.chk_block_in.grid(row=1, column=1, padx=4, pady=4, sticky="w")
+        self.chk_block_out = ctk.CTkCheckBox(grid, text="Block", font=(FONT_FAMILY, 11),
+                                             fg_color=PRIMARY_BG, hover_color=PRIMARY_HOVER,
+                                             border_color=INPUT_BORDER, text_color=TEXT_MAIN)
+        self.chk_block_out.grid(row=1, column=2, padx=4, pady=4, sticky="w")
         # Limit
-        ctk.CTkLabel(grid, text="Limit", font=(FONT_FAMILY, 11, "bold"), text_color=TEXT_MAIN).grid(row=2, column=0, padx=4, pady=3, sticky="w")
+        ctk.CTkLabel(grid, text="Limit", font=(FONT_FAMILY, 11, "bold"), text_color=TEXT_MAIN).grid(row=2, column=0, padx=4, pady=4, sticky="w")
         fi = ctk.CTkFrame(grid, fg_color="transparent")
-        fi.grid(row=2, column=1, padx=2, pady=3, sticky="w")
-        self.chk_limit_in = ctk.CTkCheckBox(fi, text="", width=18)
+        fi.grid(row=2, column=1, padx=2, pady=4, sticky="w")
+        self.chk_limit_in = ctk.CTkCheckBox(fi, text="", width=20, fg_color=PRIMARY_BG,
+                                            hover_color=PRIMARY_HOVER, border_color=INPUT_BORDER)
         self.chk_limit_in.pack(side="left")
-        self.entry_limit_in = ctk.CTkEntry(fi, width=70, height=22, font=(FONT_FAMILY, 11), placeholder_text=default_in)
-        self.entry_limit_in.pack(side="left", padx=(2, 0))
+        self.entry_limit_in = ctk.CTkEntry(fi, width=86, height=28, font=(FONT_FAMILY, 11),
+                                           corner_radius=RADIUS_MD, fg_color=INPUT_BG,
+                                           border_color=INPUT_BORDER, text_color=TEXT_MAIN,
+                                           placeholder_text=default_in, placeholder_text_color=TEXT_MUTED)
+        self.entry_limit_in.pack(side="left", padx=(4, 0))
         fo = ctk.CTkFrame(grid, fg_color="transparent")
-        fo.grid(row=2, column=2, padx=2, pady=3, sticky="w")
-        self.chk_limit_out = ctk.CTkCheckBox(fo, text="", width=18)
+        fo.grid(row=2, column=2, padx=2, pady=4, sticky="w")
+        self.chk_limit_out = ctk.CTkCheckBox(fo, text="", width=20, fg_color=PRIMARY_BG,
+                                             hover_color=PRIMARY_HOVER, border_color=INPUT_BORDER)
         self.chk_limit_out.pack(side="left")
-        self.entry_limit_out = ctk.CTkEntry(fo, width=70, height=22, font=(FONT_FAMILY, 11), placeholder_text="Not set")
-        self.entry_limit_out.pack(side="left", padx=(2, 0))
+        self.entry_limit_out = ctk.CTkEntry(fo, width=86, height=28, font=(FONT_FAMILY, 11),
+                                            corner_radius=RADIUS_MD, fg_color=INPUT_BG,
+                                            border_color=INPUT_BORDER, text_color=TEXT_MAIN,
+                                            placeholder_text="Not set", placeholder_text_color=TEXT_MUTED)
+        self.entry_limit_out.pack(side="left", padx=(4, 0))
         # prefill dari rule aktif
         r = self.current_rule
         if r is not None:
@@ -379,15 +415,21 @@ class InfoView(ctk.CTkFrame):
                 pass
         # Apply + presets
         bar = ctk.CTkFrame(box, fg_color="transparent")
-        bar.pack(fill="x", padx=6, pady=(4, 2))
-        ctk.CTkButton(bar, text="Apply Rule", height=24, font=(FONT_FAMILY, 11, "bold"), command=self._apply).pack(side="left", expand=True, fill="x", padx=(0, 4))
-        ctk.CTkButton(bar, text="Clear", width=56, height=24, font=(FONT_FAMILY, 11), fg_color="#444444", hover_color="#555555", command=self._clear_rule).pack(side="left")
+        bar.pack(fill="x", padx=8, pady=(6, 2))
+        ctk.CTkButton(bar, text="✓ Apply Rule", height=30, font=(FONT_FAMILY, 11, "bold"),
+                      corner_radius=RADIUS_MD, fg_color=PRIMARY_BG, hover_color=PRIMARY_HOVER,
+                      text_color="#ffffff", command=self._apply).pack(side="left", expand=True, fill="x", padx=(0, 6))
+        ctk.CTkButton(bar, text="Clear", width=64, height=30, font=(FONT_FAMILY, 11),
+                      corner_radius=RADIUS_MD, fg_color="#3a3a3a", hover_color="#4a4a4a",
+                      text_color=TEXT_MAIN, command=self._clear_rule).pack(side="left")
         prow = ctk.CTkFrame(box, fg_color="transparent")
-        prow.pack(fill="x", padx=6, pady=(2, 6))
-        ctk.CTkLabel(prow, text="Presets:", font=(FONT_FAMILY, 10), text_color=TEXT_MUTED).pack(side="left")
+        prow.pack(fill="x", padx=8, pady=(4, 8))
+        ctk.CTkLabel(prow, text="Presets:", font=(FONT_FAMILY, 10), text_color=TEXT_MUTED).pack(side="left", padx=(0, 4))
         for p in ("512 KB/s", "1 MB/s", "2 MB/s", "4 MB/s"):
-            ctk.CTkButton(prow, text=p, width=62, height=20, font=(FONT_FAMILY, 10), fg_color="#333333",
-                          hover_color="#444444", command=lambda v=p: self._preset(v)).pack(side="left", padx=2)
+            ctk.CTkButton(prow, text=p, width=70, height=24, font=(FONT_FAMILY, 10),
+                          corner_radius=RADIUS_PILL, fg_color="#2f2f2f",
+                          hover_color="#3d3d3d", text_color=TEXT_MAIN,
+                          command=lambda v=p: self._preset(v)).pack(side="left", padx=2)
         ctk.CTkButton(box, text="Add rule", font=(FONT_FAMILY, 11), fg_color="transparent",
                       text_color=TEXT_LINK, height=18, anchor="w", command=self._apply).pack(anchor="w", padx=6, pady=(0, 4))
 

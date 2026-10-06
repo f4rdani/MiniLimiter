@@ -65,23 +65,43 @@ def main():
     app = MainWindow(tracker, rules_mgr, shaper)
 
     def on_closing():
+        # Tombol X = simpan ke tray (engine tetap jalan).
+        # Keluar beneran hanya via menu tray "Exit" (MainWindow.shutdown).
+        try:
+            has_tray = getattr(app, "_tray", None) is not None
+            really_quit = bool(getattr(app, "_really_quit", False))
+            shutting = bool(getattr(app, "_shutting_down", False))
+        except Exception:
+            has_tray, really_quit, shutting = False, True, False
+        if has_tray and not really_quit and not shutting:
+            logger.info("Hiding MiniLimiter to tray (engine keeps running)...")
+            try:
+                app.hide_to_tray()
+            except Exception as e:
+                logger.debug(f"hide_to_tray failed, shutting down: {e}")
+                app.shutdown()
+            return
         logger.info("Shutting down MiniLimiter cleanly...")
         try:
-            if getattr(app, "_refresh_after", None):
-                app.after_cancel(app._refresh_after)
+            app.shutdown()
         except Exception:
-            pass
-        try:
-            shaper.stop()
-        except Exception as e:
-            logger.debug(f"Error stopping shaper: {e}")
-
-        try:
-            tracker.stop()
-        except Exception as e:
-            logger.debug(f"Error stopping tracker: {e}")
-
-        app.destroy()
+            try:
+                if getattr(app, "_refresh_after", None):
+                    app.after_cancel(app._refresh_after)
+            except Exception:
+                pass
+            try:
+                shaper.stop()
+            except Exception as e:
+                logger.debug(f"Error stopping shaper: {e}")
+            try:
+                tracker.stop()
+            except Exception as e:
+                logger.debug(f"Error stopping tracker: {e}")
+            try:
+                app.destroy()
+            except Exception:
+                pass
         logger.info("Shutdown complete.")
 
     app.protocol("WM_DELETE_WINDOW", on_closing)

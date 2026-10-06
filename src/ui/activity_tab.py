@@ -67,16 +67,12 @@ def friendly_name(exe_name: str) -> str:
 
 
 def app_icon(exe_name: str) -> str:
-    key = (exe_name or "").lower()
-    if key in ("svchost.exe", "services.exe", "lsass.exe", "wininit.exe", "spoolsv.exe"):
-        return "⚙"
-    if key in ("steam.exe", "msedge.exe", "chrome.exe", "firefox.exe", "code.exe", "explorer.exe"):
-        return "▤"
-    if key in ("luatools.exe",):
-        return "◆"
-    if key in ("system", "unmapped"):
-        return "●"
-    return "▤"
+    """Compat: dulu glyph unicode, kini "" (ikon digambar via tiles).
+
+    Dipertahankan agar import lama tidak rusak. Ikon asli digambar oleh
+    `src.utils.icons.get_app_tile()` sebagai gambar Treeview.
+    """
+    return ""
 
 
 class ActivityTab(ctk.CTkFrame):
@@ -94,38 +90,44 @@ class ActivityTab(ctk.CTkFrame):
         # Sort state (klik header kolom seperti NetLimiter)
         self._sort_col: str = "dl"   # 'name' | 'dl' | 'ul' | 'rule'
         self._sort_desc: bool = True
+        self._tile_refs: dict = {}  # iid -> PhotoImage (cegah GC ikon tile)
         self._build_sub_bar()
         self._build_treeview()
 
     # ---- sub toolbar ----
     def _build_sub_bar(self):
-        self.sub_bar = ctk.CTkFrame(self, fg_color="transparent", height=28)
-        self.sub_bar.pack(fill="x", padx=4, pady=(4, 2))
+        from src.ui.theme import BTN_BG, BTN_HOVER, RADIUS_PILL
+        self.sub_bar = ctk.CTkFrame(self, fg_color="transparent", height=32)
+        self.sub_bar.pack(fill="x", padx=6, pady=(6, 4))
 
         # Tombol Rate: toggle tampilkan kecepatan vs total byte (fungsional).
-        self.btn_rate = ctk.CTkButton(self.sub_bar, text="Rate", width=56, height=22,
-                                      font=(FONT_FAMILY, 10), fg_color="#333333", hover_color="#444444",
-                                      corner_radius=3, command=self._toggle_mode)
+        self.btn_rate = ctk.CTkButton(self.sub_bar, text="Rate", width=64, height=26,
+                                      font=(FONT_FAMILY, 10, "bold"), fg_color=BTN_BG,
+                                      hover_color=BTN_HOVER, text_color=TEXT_MAIN,
+                                      corner_radius=RADIUS_PILL, command=self._toggle_mode)
         self.btn_rate.pack(side="left", padx=2)
 
         self.pills = {}
-        for name, w in (("All", 34), ("Online", 52), ("Offline", 52), ("Hidden", 52)):
-            b = ctk.CTkButton(self.sub_bar, text=name, width=w, height=22, font=(FONT_FAMILY, 10),
-                              fg_color=SELECT_BLUE if name == "All" else "#333333",
-                              hover_color="#444444", corner_radius=3,
+        for name, w in (("All", 40), ("Online", 62), ("Offline", 62), ("Hidden", 62)):
+            b = ctk.CTkButton(self.sub_bar, text=name, width=w, height=26, font=(FONT_FAMILY, 10),
+                              fg_color=SELECT_BLUE if name == "All" else BTN_BG,
+                              hover_color=BTN_HOVER, text_color="#ffffff",
+                              corner_radius=RADIUS_PILL,
                               command=lambda n=name: self._set_filter(n))
             b.pack(side="left", padx=2)
             self.pills[name] = b
 
         # right icons: cycle-sort / refresh-now (keduanya fungsional)
-        self.btn_sort = ctk.CTkButton(self.sub_bar, text="⇋", width=26, height=22, font=(FONT_FAMILY, 12),
-                                      fg_color="transparent", hover_color="#333333", command=self.cycle_sort)
-        self.btn_sort.pack(side="right", padx=1)
-        self.btn_refresh = ctk.CTkButton(self.sub_bar, text="⟳", width=26, height=22, font=(FONT_FAMILY, 12),
-                                        fg_color="transparent", hover_color="#333333", command=self._on_refresh)
-        self.btn_refresh.pack(side="right", padx=1)
+        self.btn_sort = ctk.CTkButton(self.sub_bar, text="⇋ Sort", width=64, height=26, font=(FONT_FAMILY, 10, "bold"),
+                                      fg_color=BTN_BG, hover_color=BTN_HOVER, text_color=TEXT_MAIN,
+                                      corner_radius=RADIUS_PILL, command=self.cycle_sort)
+        self.btn_sort.pack(side="right", padx=2)
+        self.btn_refresh = ctk.CTkButton(self.sub_bar, text="⟳", width=30, height=26, font=(FONT_FAMILY, 13),
+                                        fg_color=BTN_BG, hover_color=BTN_HOVER, text_color=TEXT_MAIN,
+                                        corner_radius=RADIUS_PILL, command=self._on_refresh)
+        self.btn_refresh.pack(side="right", padx=2)
         self.lbl_stats = ctk.CTkLabel(self.sub_bar, text="", font=(FONT_FAMILY, 10), text_color=TEXT_MUTED)
-        self.lbl_stats.pack(side="right", padx=6)
+        self.lbl_stats.pack(side="right", padx=8)
 
     def _toggle_mode(self) -> None:
         """Tukar tampilan Rate <-> Total."""
@@ -146,22 +148,19 @@ class ActivityTab(ctk.CTkFrame):
     def _set_filter(self, mode):
         self.filter_mode = mode
         for k, btn in self.pills.items():
-            btn.configure(fg_color=SELECT_BLUE if k == mode else "#333333",
-                          font=(FONT_FAMILY, 11, "bold" if k == mode else "normal"))
+            is_active = (k == mode)
+            btn.configure(fg_color=SELECT_BLUE if is_active else "#2f2f2f",
+                          text_color="#ffffff",
+                          font=(FONT_FAMILY, 10, "bold" if is_active else "normal"))
 
     # ---- tree ----
     def _build_treeview(self):
-        # Bingkai gelap 1px agar tepi tree tidak menampilkan garis putih tema clam
-        frame = ctk.CTkFrame(self, fg_color=BG_TABLE, corner_radius=0, border_width=1, border_color=BORDER_COLOR)
-        frame.pack(fill="both", expand=True, padx=4, pady=(0, 4))
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("NLM.Treeview", background=BG_TABLE, foreground=TEXT_MAIN,
-                        fieldbackground=BG_TABLE, rowheight=24, font=(FONT_FAMILY, 10), borderwidth=0)
-        style.configure("NLM.Treeview.Heading", background="#2d2d2d", foreground=TEXT_MUTED,
-                        font=(FONT_FAMILY, 10, "bold"), relief="raised", borderwidth=1)
-        style.map("NLM.Treeview", background=[("selected", BG_ROW_SELECTED)],
-                  foreground=[("selected", "#ffffff")])
+        from src.ui.theme import RADIUS_MD, ROW_ALT_BG, style_table
+        # Kartu tabel: bingkai rounded + border halus
+        frame = ctk.CTkFrame(self, fg_color=BG_TABLE, corner_radius=RADIUS_MD,
+                             border_width=1, border_color=BORDER_COLOR)
+        frame.pack(fill="both", expand=True, padx=6, pady=(0, 6))
+        style_table("NLM.Treeview", rowheight=26, font_size=11)
         cols = ("dl", "ul", "rule")
         self.tree = ttk.Treeview(frame, style="NLM.Treeview", columns=cols, show="tree headings",
                                  selectmode="browse", takefocus=0)
@@ -175,12 +174,12 @@ class ActivityTab(ctk.CTkFrame):
         self.tree.column("rule", width=150, minwidth=100, anchor="center")
         vs = ttk.Scrollbar(frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=vs.set)
-        self.tree.pack(side="left", fill="both", expand=True)
-        vs.pack(side="right", fill="y")
+        self.tree.pack(side="left", fill="both", expand=True, padx=(6, 0), pady=6)
+        vs.pack(side="right", fill="y", padx=(0, 4), pady=6)
         bind_mousewheel(self.tree)
         self.tree.tag_configure("dim", foreground="#c9c9c9")
-        self.tree.tag_configure("alt", background="#242424")
-        self.tree.tag_configure("group", foreground=TEXT_MAIN)
+        self.tree.tag_configure("alt", background=ROW_ALT_BG)
+        self.tree.tag_configure("group", foreground=TEXT_MAIN, font=(FONT_FAMILY, 11, "bold"))
         self.tree.tag_configure("groupdim", foreground="#a8a8a8")
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
 
@@ -268,13 +267,14 @@ class ActivityTab(ctk.CTkFrame):
             return fmt_rate(v_rate)
 
         # pastikan grup statis ada (root = nama PC dinamis, mis. "- DESKTOP-20")
+        # Label teks polos (tanpa emoji) agar tidak jadi kotak/tanda-tanya.
         try:
             host = get_computer_name()
         except Exception:
             host = ""
         root_label = f"- {host}" if host and host not in ("-", "This computer") else "-"
-        for iid, label in (("__root__", root_label), ("grp:filters", "⧩  Filters"), ("grp:tags", "⧫  Tags"),
-                           ("grp:internet", "🌐  Internet"), ("grp:local", "🌐  LocalNetwork")):
+        for iid, label in (("__root__", root_label), ("grp:filters", "Filters"), ("grp:tags", "Tags"),
+                           ("grp:internet", "Internet"), ("grp:local", "LocalNetwork")):
             if not self.tree.exists(iid):
                 self.tree.insert("", "end", iid=iid, text=label, open=True, tags=("group",))
             elif iid == "__root__":
@@ -284,10 +284,10 @@ class ActivityTab(ctk.CTkFrame):
                     pass
         self.tree.set("__root__", "dl", fmt(t_dl, sum(a.total_dl for a in apps)))
         self.tree.set("__root__", "ul", fmt(t_ul, sum(a.total_ul for a in apps)))
-        # Badge device-level di root "-" ala NetLimiter (panah biru ⬇ saat dilimit)
+        # Badge device-level di root "-" ala NetLimiter (▼ saat dilimit)
         if global_limit_in and global_limit_in > 0:
             try:
-                self.tree.set("__root__", "rule", f"⬇ {format_rate(global_limit_in, unit_mode)}")
+                self.tree.set("__root__", "rule", f"▼ {format_rate(global_limit_in, unit_mode)}")
             except Exception:
                 pass
         else:
@@ -345,29 +345,45 @@ class ActivityTab(ctk.CTkFrame):
             rows.sort(key=key, reverse=self._sort_desc)
 
         wanted = set()
+        try:
+            from src.utils.icons import get_app_tile
+        except Exception:
+            get_app_tile = None  # type: ignore
         for row_idx, app in enumerate(rows):
             disp = friendly_name(app.name)
             iid = "app:" + app.name
             wanted.add(iid)
             active = (app.dl_rate + app.ul_rate) > 1.0
-            icon = app_icon(app.name)
             # Rapi: dot hijau hanya untuk yang benar-benar aktif
-            label = f"● {icon}  {disp}" if active else f"  {icon}  {disp}"
+            label = f"●  {disp}" if active else f"      {disp}"
             badge = self._badge(app, rules.get(app.name), unit_mode)
             tags = []
             if row_idx % 2 == 1:
                 tags.append("alt")  # belang tiap baris genap
             if not (active or app.is_online):
                 tags.append("dim")
+            tile = None
+            if get_app_tile is not None:
+                try:
+                    tile = get_app_tile(app.name, master=self.tree)
+                except Exception:
+                    tile = None
+            img = tile if tile is not None else ""
+            if tile is not None:
+                self._tile_refs[iid] = tile
             if not self.tree.exists(iid):
-                self.tree.insert("", "end", iid=iid, text=label, values=(fmt(app.dl_rate, app.total_dl), fmt(app.ul_rate, app.total_ul), badge), tags=tags)
+                self.tree.insert("", "end", iid=iid, text=label, image=img, values=(fmt(app.dl_rate, app.total_dl), fmt(app.ul_rate, app.total_ul), badge), tags=tags)
             else:
-                self.tree.item(iid, text=label, values=(fmt(app.dl_rate, app.total_dl), fmt(app.ul_rate, app.total_ul), badge), tags=tags)
+                self.tree.item(iid, text=label, image=img, values=(fmt(app.dl_rate, app.total_dl), fmt(app.ul_rate, app.total_ul), badge), tags=tags)
 
         for child in list(self.tree.get_children()):
             if child.startswith("app:") and child not in wanted:
                 try:
                     self.tree.delete(child)
+                except Exception:
+                    pass
+                try:
+                    self._tile_refs.pop(child, None)
                 except Exception:
                     pass
 
@@ -377,20 +393,21 @@ class ActivityTab(ctk.CTkFrame):
             pass
 
     def _badge(self, app: ProcessInfo, rule: Optional[Rule], unit_mode: str) -> str:
-        # Rapi ala NetLimiter: kosong bila tidak ada rule, ikon/badge bila ada
+        # Rapi ala NetLimiter: kosong bila tidak ada rule, ikon/badge bila ada.
+        # Glyph aman Segoe UI (▼▲■) — emoji/geometri langka jadi kotak/?.
         if not rule or not rule.enabled:
             return ""
         if rule.block_in and rule.block_out:
-            return "⛔ Blocked"
+            return "■ Blocked"
         if rule.block_in and not (rule.limit_in or rule.limit_out or rule.block_out):
-            return "⛔ Block In"
+            return "■ Block In"
         if rule.block_out and not (rule.limit_in or rule.limit_out or rule.block_in):
-            return "⛔ Block Out"
+            return "■ Block Out"
         parts = []
         if rule.limit_in:
-            parts.append(f"⬇ {format_rate(rule.limit_in, unit_mode)}")
+            parts.append(f"▼ {format_rate(rule.limit_in, unit_mode)}")
         if rule.limit_out:
-            parts.append(f"⬆ {format_rate(rule.limit_out, unit_mode)}")
+            parts.append(f"▲ {format_rate(rule.limit_out, unit_mode)}")
         if rule.block_in:
             parts.append("Block In")
         if rule.block_out:

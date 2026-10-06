@@ -20,26 +20,24 @@ class NetworkListTab(ctk.CTkFrame):
         self.refresh_adapters()
 
     def _build(self):
-        style = ttk.Style()
-        style.configure("NL.Treeview", background=BG_TABLE, foreground=TEXT_MAIN,
-                        fieldbackground=BG_TABLE, rowheight=36, font=(FONT_FAMILY, 11), borderwidth=0)
-        style.configure("NL.Treeview.Heading", background="#2d2d2d", foreground=TEXT_MUTED,
-                        font=(FONT_FAMILY, 11, "bold"), relief="raised", borderwidth=1)
-        style.map("NL.Treeview", background=[("selected", BG_ROW_SELECTED)],
-                  foreground=[("selected", "#ffffff")])
-        self.tree = ttk.Treeview(self, style="NL.Treeview", columns=("status",),
+        from src.ui.theme import RADIUS_MD, BORDER_COLOR, style_table
+        card = ctk.CTkFrame(self, fg_color=BG_TABLE, corner_radius=RADIUS_MD,
+                            border_width=1, border_color=BORDER_COLOR)
+        card.pack(fill="both", expand=True, padx=6, pady=6)
+        style_table("NL.Treeview", rowheight=34, font_size=11)
+        self.tree = ttk.Treeview(card, style="NL.Treeview", columns=("status",),
                                  show="tree headings", selectmode="browse", takefocus=0)
-        self.tree.heading("#0", text="", anchor="w")
-        self.tree.heading("status", text="", anchor="e")
+        self.tree.heading("#0", text="Adapter", anchor="w")
+        self.tree.heading("status", text="Status", anchor="e")
         self.tree.column("#0", width=560, anchor="w", stretch=True)
         self.tree.column("status", width=90, anchor="e")
-        self.tree.pack(side="left", fill="both", expand=True)
-        vsb = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        self.tree.pack(side="left", fill="both", expand=True, padx=(6, 0), pady=6)
+        vsb = ttk.Scrollbar(card, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=vsb.set)
-        vsb.pack(side="right", fill="y")
+        vsb.pack(side="right", fill="y", padx=(0, 4), pady=6)
         bind_mousewheel(self.tree)
         self.tree.tag_configure("active", foreground=TEXT_GREEN)
-        self.tree.tag_configure("alt", background="#242424")
+        self.tree.tag_configure("alt", background="#232323")
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
 
     def _on_select(self, _event=None):

@@ -2,7 +2,7 @@
 
 Hanya berisi kontrol yang benar-benar berfungsi — tanpa menu/pilihan pajangan.
 - Toolbar: Units | Blocker On | Limiter On | Search
-- Tabs: Activity | Rule List | Application List | Network List | Blocker
+- Tabs: Activity | Rules (Limit+Blocker + filter) | Application List | Network List
 - Left content per tab + bottom link-bar per tab
 - Right: Info View (top) + Traffic chart (bottom)
 """
@@ -18,13 +18,13 @@ from src.core.shaper import TrafficShaper
 from src.core.tracker import NetworkTracker
 from src.ui.activity_tab import ActivityTab
 from src.ui.application_list_tab import ApplicationListTab
-from src.ui.blocker_tab import BlockerTab
 from src.ui.info_view import InfoView
 from src.ui.network_list_tab import NetworkListTab
 from src.ui.rule_list_tab import RuleListTab
 from src.ui.theme import (BG_APP, BG_PANEL, FONT_FAMILY, TAB_ACTIVE_BG, TAB_ACTIVE_TEXT,
                           TAB_BG, TAB_TEXT, TEXT_LINK, TEXT_MAIN, TEXT_MUTED,
                           apply_dark_ttk)
+from src.ui.tray_icon import MiniLimiterTray
 from src.ui.traffic_chart import TrafficChart
 from src.utils.appinfo import get_file_info
 from src.utils.elevation import elevate_and_restart, is_admin
@@ -32,7 +32,9 @@ from src.utils.formatters import format_rate
 
 logger = logging.getLogger("MiniLimiter.UI")
 
-TABS = ["Activity", "Rule List", "Application List", "Network List", "Blocker"]
+TABS = ["Activity", "Rules", "Application List", "Network List"]
+# Nama lama (sebelum gabung) -> nama baru, agar callback/test lama tetap jalan.
+_LEGACY_TAB_ALIASES = {"Rule List": "Rules", "Blocker": "Rules"}
 
 
 class MainWindow(ctk.CTk):
@@ -44,6 +46,11 @@ class MainWindow(ctk.CTk):
         self.is_elevated = is_admin()
         self.selected_app_name: Optional[str] = None
         self.current_tab = "Activity"
+        # --- tray state (hide-to-tray, bukan exit) ---
+        self._tray = None
+        self._is_hidden_to_tray = False
+        self._really_quit = False
+        self._shutting_down = False
 
         ctk.set_appearance_mode("dark")
         apply_dark_ttk()
@@ -59,64 +66,280 @@ class MainWindow(ctk.CTk):
         # kalau tidak status bar terjepit 0px dan chart tidak nempel bawah.
         self._build_bottombar()
         self._build_split()
+        self._init_tray()
         self._refresh_after = self.after(500, self._periodic_refresh)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        # Minimize (_) -> sembunyi ke tray (bukan ke taskbar).
+        self.bind("<Unmap>", self._on_minimize_to_tray)
 
-    def _on_close(self):
+    # ---------------- tray (hide-to-tray + hover DL/UL) ----------------
+    def _init_tray(self):
+        """Buat ikon tray. Hover = tooltip DL/UL live, menu = Show/Limiter/Exit."""
+        try:
+            self._tray = MiniLimiterTray(
+                on_show=self._show_from_tray,
+                on_quit=self._quit_from_tray,
+                on_toggle_limiter=self._toggle_limiter_from_tray,
+                get_limiter_state=lambda: bool(self.rules_mgr.master_limiter_enabled),
+            )
+            started = self._tray.start()
+            if not started:
+                self._tray = None
+        except Exception as e:
+            logger.warning(f"Tray init failed: {e}")
+            self._tray = None
+
+    def _ensure_tray(self) -> bool:
+        if self._tray is not None:
+            return True
+        try:
+            self._init_tray()
+        except Exception:
+            pass
+        return self._tray is not None
+
+    def hide_to_tray(self):
+        """Sembunyikan window ke tray (engine tetap jalan)."""
+        if self._shutting_down or self._really_quit:
+            return
+        if not self._ensure_tray():
+            # Tanpa tray (headless/CI): fallback minimize biasa.
+            try:
+                self.iconify()
+            except Exception:
+                pass
+            return
+        try:
+            self.withdraw()
+        except Exception:
+            pass
+        self._is_hidden_to_tray = True
+        try:
+            self._update_tray_tooltip()
+        except Exception:
+            pass
+
+    def _on_minimize_to_tray(self, _event=None):
+        # Hanya saat user klik minimize (iconic) & belum disembunyikan.
+        if self._shutting_down or self._really_quit or self._is_hidden_to_tray:
+            return
+        try:
+            if self.state() == "iconic" and self._tray is not None:
+                # Tunda sedikit agar state stabil, lalu withdraw ke tray.
+                self.after(50, self._hide_if_still_iconic)
+        except Exception:
+            pass
+
+    def _hide_if_still_iconic(self):
+        try:
+            if self.state() == "iconic" and not self._is_hidden_to_tray:
+                self.hide_to_tray()
+        except Exception:
+            pass
+
+    def _do_show_window(self):
+        try:
+            self.deiconify()
+        except Exception:
+            pass
+        try:
+            self.state("normal")
+        except Exception:
+            pass
+        try:
+            self.lift()
+            self.focus_force()
+        except Exception:
+            pass
+        self._is_hidden_to_tray = False
+
+    def _show_from_tray(self):
+        """Callback dari thread tray -> jadwalkan ke thread Tk."""
+        try:
+            self.after(0, self._do_show_window)
+        except Exception:
+            pass
+
+    def _toggle_limiter_from_tray(self):
+        try:
+            self.after(0, self._do_toggle_limiter_from_tray)
+        except Exception:
+            pass
+
+    def _do_toggle_limiter_from_tray(self):
+        try:
+            new_val = not bool(self.rules_mgr.master_limiter_enabled)
+            self.var_limiter.set(new_val)
+            self._on_master_limiter()
+            if self._tray is not None:
+                self._tray.refresh_menu()
+                self._update_tray_tooltip()
+        except Exception:
+            pass
+
+    def _quit_from_tray(self):
+        try:
+            self.after(0, self.shutdown)
+        except Exception:
+            pass
+
+    def _update_tray_tooltip(self):
+        if self._tray is None:
+            return
+        try:
+            dl, ul = self.tracker.get_total_rates()
+        except Exception:
+            dl, ul = 0.0, 0.0
+        try:
+            unit = self.unit_combo.get()
+        except Exception:
+            unit = "autoByte"
+        try:
+            limiter_on = bool(self.rules_mgr.master_limiter_enabled)
+        except Exception:
+            limiter_on = None
+        try:
+            self._tray.update_rates(dl, ul, unit_mode=unit, limiter_on=limiter_on)
+        except Exception:
+            pass
+
+    def shutdown(self):
+        """Keluar beneran: stop tray + backend lalu destroy (dipakai X+Exit)."""
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+        self._really_quit = True
         try:
             if getattr(self, "_refresh_after", None):
                 self.after_cancel(self._refresh_after)
         except Exception:
             pass
-        self.destroy()
+        try:
+            if self._tray is not None:
+                self._tray.stop()
+        except Exception:
+            pass
+        try:
+            self.shaper.stop()
+        except Exception:
+            pass
+        try:
+            self.tracker.stop()
+        except Exception:
+            pass
+        try:
+            self.destroy()
+        except Exception:
+            pass
+
+    def destroy(self):
+        # Pastikan ikon tray tidak tertinggal saat window dihancurkan (mis. test).
+        try:
+            self._shutting_down = True
+        except Exception:
+            pass
+        try:
+            if getattr(self, "_refresh_after", None):
+                self.after_cancel(self._refresh_after)
+        except Exception:
+            pass
+        try:
+            if getattr(self, "_tray", None) is not None:
+                self._tray.stop()
+        except Exception:
+            pass
+        super().destroy()
+
+    def _on_close(self):
+        # Tombol X = simpan ke tray (engine tetap jalan), bukan exit.
+        if self._really_quit or self._shutting_down or self._tray is None:
+            self.shutdown()
+        else:
+            self.hide_to_tray()
 
     # ---------------- toolbar ----------------
     def _build_toolbar(self):
-        self.toolbar = ctk.CTkFrame(self, fg_color=BG_PANEL, height=36, corner_radius=0)
+        from src.ui.theme import (BTN_BG, BTN_HOVER, INPUT_BG, INPUT_BORDER,
+                                  INPUT_FOCUS, PRIMARY_BG, PRIMARY_HOVER,
+                                  RADIUS_MD, RADIUS_PILL, SURFACE_2)
+        self.toolbar = ctk.CTkFrame(self, fg_color=BG_PANEL, height=40, corner_radius=0)
         self.toolbar.pack(fill="x", side="top")
-        ctk.CTkLabel(self.toolbar, text="Units", font=(FONT_FAMILY, 11), text_color=TEXT_MUTED).pack(side="left", padx=(8, 2))
-        self.unit_combo = ctk.CTkComboBox(self.toolbar, values=["autoByte", "KB/s", "MB/s", "autoBit", "Mb/s"],
-                                          width=90, height=24, font=(FONT_FAMILY, 11), corner_radius=3,
-                                          command=lambda _c: self._periodic_refresh())
+        ctk.CTkLabel(self.toolbar, text="Units", font=(FONT_FAMILY, 11, "bold"),
+                     text_color=TEXT_MUTED).pack(side="left", padx=(10, 4), pady=8)
+        self.unit_combo = ctk.CTkComboBox(
+            self.toolbar, values=["autoByte", "KB/s", "MB/s", "autoBit", "Mb/s"],
+            width=104, height=28, font=(FONT_FAMILY, 11), corner_radius=RADIUS_MD,
+            fg_color=INPUT_BG, border_color=INPUT_BORDER, border_width=1,
+            button_color=SURFACE_2, button_hover_color=BTN_HOVER,
+            dropdown_fg_color=SURFACE_2, dropdown_text_color=TEXT_MAIN,
+            text_color=TEXT_MAIN,
+            command=lambda _c: self._periodic_refresh())
         self.unit_combo.set("autoByte")
-        self.unit_combo.pack(side="left", padx=2)
+        self.unit_combo.pack(side="left", padx=2, pady=6)
 
         self.var_blocker = tk.BooleanVar(value=self.rules_mgr.master_blocker_enabled)
         self.var_limiter = tk.BooleanVar(value=self.rules_mgr.master_limiter_enabled)
         for txt, var, cmd in (("Blocker On", self.var_blocker, self._on_master_blocker),
                               ("Limiter On", self.var_limiter, self._on_master_limiter)):
             cb = ctk.CTkCheckBox(self.toolbar, text=txt, variable=var, font=(FONT_FAMILY, 11),
-                                 width=20, command=cmd)
+                                 fg_color=PRIMARY_BG, hover_color=PRIMARY_HOVER,
+                                 border_color=INPUT_BORDER, checkmark_color="#ffffff",
+                                 text_color=TEXT_MAIN, command=cmd)
             if var.get():
                 cb.select()
-            cb.pack(side="left", padx=8)
+            cb.pack(side="left", padx=10, pady=8)
 
         if not self.is_elevated:
-            ctk.CTkButton(self.toolbar, text="Restart as Admin", width=120, height=24, font=(FONT_FAMILY, 11, "bold"),
-                          fg_color="#b35400", command=elevate_and_restart).pack(side="left", padx=4)
+            ctk.CTkButton(self.toolbar, text="↗ Restart as Admin", width=140, height=28,
+                          font=(FONT_FAMILY, 11, "bold"), corner_radius=RADIUS_MD,
+                          fg_color="#b35400", hover_color="#c96a10",
+                          command=elevate_and_restart).pack(side="left", padx=4, pady=6)
 
-        # search kanan + ikon kaca
+        # search kanan: satu entry pill kokoh + tombol clear (×) + tombol tray
         swrap = ctk.CTkFrame(self.toolbar, fg_color="transparent")
-        swrap.pack(side="right", padx=6)
-        self.search_entry = ctk.CTkEntry(swrap, placeholder_text="Search", width=180, height=24, font=(FONT_FAMILY, 11))
+        swrap.pack(side="right", padx=8, pady=6)
+        ctk.CTkButton(swrap, text="Hide to Tray", width=104, height=28, font=(FONT_FAMILY, 11),
+                      corner_radius=RADIUS_PILL, border_width=1, border_color=INPUT_BORDER,
+                      fg_color=BTN_BG, hover_color=BTN_HOVER, text_color=TEXT_MAIN,
+                      command=self.hide_to_tray).pack(side="left", padx=(0, 8))
+        search_box = ctk.CTkFrame(swrap, fg_color="transparent")
+        search_box.pack(side="left")
+        self.search_entry = ctk.CTkEntry(
+            search_box, placeholder_text="○  Search apps…",
+            width=200, height=28, font=(FONT_FAMILY, 11),
+            corner_radius=RADIUS_PILL, fg_color=INPUT_BG,
+            border_color=INPUT_BORDER, border_width=1,
+            text_color=TEXT_MAIN, placeholder_text_color="#8a8a8a")
         self.search_entry.pack(side="left")
+        self.btn_clear_search = ctk.CTkButton(
+            search_box, text="×", width=28, height=28, font=(FONT_FAMILY, 13, "bold"),
+            corner_radius=RADIUS_PILL, fg_color="transparent", hover_color=BTN_HOVER,
+            text_color=TEXT_MUTED, command=self._clear_search)
+        # disembunyikan sampai ada teks (diatur di _on_search)
         self.search_entry.bind("<KeyRelease>", self._on_search)
+        self.search_entry.bind("<FocusIn>", lambda _e: self.search_entry.configure(border_color=INPUT_FOCUS))
+        self.search_entry.bind("<FocusOut>", lambda _e: self.search_entry.configure(border_color=INPUT_BORDER))
+        # garis bawah toolbar agar terasa seperti header aplikasi modern
+        self.toolbar_border = ctk.CTkFrame(self, fg_color="#333333", height=1, corner_radius=0)
+        self.toolbar_border.pack(fill="x", side="top")
 
     # ---------------- tab bar ----------------
     def _build_tabbar(self):
-        self.tabbar = ctk.CTkFrame(self, fg_color=BG_PANEL, height=28, corner_radius=0)
-        self.tabbar.pack(fill="x")
+        from src.ui.theme import RADIUS_MD
+        self.tabbar = ctk.CTkFrame(self, fg_color=BG_PANEL, height=34, corner_radius=0)
+        self.tabbar.pack(fill="x", padx=8, pady=(6, 0))
         self.tab_btns = {}
         for t in TABS:
-            b = ctk.CTkButton(self.tabbar, text=t, height=24, font=(FONT_FAMILY, 11),
-                              fg_color=TAB_BG, text_color=TAB_TEXT, corner_radius=0, anchor="center",
+            b = ctk.CTkButton(self.tabbar, text=t, height=28, font=(FONT_FAMILY, 11),
+                              fg_color=TAB_BG, text_color=TAB_TEXT, corner_radius=RADIUS_MD, anchor="center",
+                              hover_color="#3d3d3d",
                               command=lambda n=t: self._switch_tab(n))
-            b.pack(side="left", padx=0)
+            b.pack(side="left", padx=3)
             self.tab_btns[t] = b
         self._paint_tabs()
         # garis kuning di bawah tab aktif (seperti ref)
         self.tab_underline = ctk.CTkFrame(self, fg_color=TAB_ACTIVE_BG, height=2, corner_radius=0)
-        self.tab_underline.pack(fill="x")
+        self.tab_underline.pack(fill="x", padx=0, pady=(4, 0))
 
     def _paint_tabs(self):
         for t, b in self.tab_btns.items():
@@ -149,10 +372,15 @@ class MainWindow(ctk.CTk):
                                          on_rule_selected=self._on_rule_selected)
         self.app_list_tab = ApplicationListTab(self.left, on_app_selected=self._on_app_selected)
         self.network_list_tab = NetworkListTab(self.left, on_network_selected=self._on_network_selected)
-        self.blocker_tab = BlockerTab(self.left, on_rule_selected=self._on_rule_selected)
-        self._tab_widgets = {"Activity": self.activity_tab, "Rule List": self.rule_list_tab,
+        # Compat: kode/test lama yang mengakses app.blocker_tab / "Blocker" tetap jalan
+        # (menunjuk ke tab Rules yang sama, bukan widget terpisah).
+        self.blocker_tab = self.rule_list_tab
+        self._tab_widgets = {"Activity": self.activity_tab, "Rules": self.rule_list_tab,
                              "Application List": self.app_list_tab,
-                             "Network List": self.network_list_tab, "Blocker": self.blocker_tab}
+                             "Network List": self.network_list_tab}
+        # Alias nama lama -> widget baru.
+        self._tab_widgets["Rule List"] = self.rule_list_tab
+        self._tab_widgets["Blocker"] = self.rule_list_tab
 
         self.right = ctk.CTkFrame(self.split, fg_color=BG_PANEL, corner_radius=0, width=460)
         self.right.pack_propagate(False)
@@ -190,14 +418,16 @@ class MainWindow(ctk.CTk):
         # height eksplisit + propagate off: frame kosong default 200x200 yg
         # mendorong status bar jadi raksasa (bug area kosong bawah).
         self.bottom_left = ctk.CTkFrame(self.bottom, fg_color="transparent", height=22)
-        self.bottom_left.pack(side="left", padx=4)
+        self.bottom_left.pack(side="left", padx=6)
         self.bottom_left.pack_propagate(False)
-        self.lbl_filtered = ctk.CTkLabel(self.bottom, text="➤ Filtered view", font=(FONT_FAMILY, 11),
+        self.lbl_filtered = ctk.CTkLabel(self.bottom, text="● Filtered view", font=(FONT_FAMILY, 10),
                                          text_color=TEXT_LINK)
-        self.btn_reset_view = ctk.CTkButton(self.bottom, text="Reset view", font=(FONT_FAMILY, 11),
+        self.btn_reset_view = ctk.CTkButton(self.bottom, text="↺ Reset view", font=(FONT_FAMILY, 10, "bold"),
                                             fg_color="transparent", text_color=TEXT_LINK,
-                                            hover_color="#333333", height=18, command=self._reset_view)
-        self.btn_reset_view.pack(side="right", padx=8)
+                                            border_width=1, border_color="#3d3d3d", corner_radius=11,
+                                            hover_color="#333333", height=18, width=100,
+                                            command=self._reset_view)
+        self.btn_reset_view.pack(side="right", padx=8, pady=2)
         self._refresh_bottombar()
 
     def _reset_view(self) -> None:
@@ -206,15 +436,20 @@ class MainWindow(ctk.CTk):
             self.search_entry.delete(0, "end")
         except Exception:
             pass
+        self._sync_clear_button()
         try:
             self.activity_tab.reset_view()
         except Exception:
             pass
-        for tab in (self.rule_list_tab, self.blocker_tab, self.app_list_tab, self.network_list_tab):
+        for tab in (self.rule_list_tab, self.app_list_tab, self.network_list_tab):
             try:
                 tab.reset_columns()
             except Exception:
                 pass
+        try:
+            self.rule_list_tab.set_filter("All")
+        except Exception:
+            pass
         try:
             self.update_idletasks()
             self.split.sashpos(0, max(400, self.split.winfo_width() - 470))
@@ -225,20 +460,21 @@ class MainWindow(ctk.CTk):
         self._periodic_refresh()
 
     def _link(self, parent, text, cmd):
-        ctk.CTkButton(parent, text=text, font=(FONT_FAMILY, 11), fg_color="transparent",
-                      text_color=TEXT_LINK, hover=False, height=18, command=cmd).pack(side="left", padx=4)
+        prefix = "+ " if text.lower().startswith("add") else ("— " if text.lower().startswith("delete") else "")
+        ctk.CTkButton(parent, text=f"{prefix}{text}", font=(FONT_FAMILY, 10, "bold"),
+                      fg_color="#2f2f2f", hover_color="#3d3d3d", text_color=TEXT_MAIN,
+                      border_width=1, border_color="#3d3d3d", corner_radius=11,
+                      height=18, command=cmd).pack(side="left", padx=3)
 
     def _refresh_bottombar(self):
         for w in self.bottom_left.winfo_children():
             w.destroy()
-        t = self.current_tab
+        t = _LEGACY_TAB_ALIASES.get(self.current_tab, self.current_tab)
         if t == "Activity":
             pass
-        elif t == "Rule List":
+        elif t == "Rules":
             self._link(self.bottom_left, "Add rule", self._add_rule_dialog)
             self._link(self.bottom_left, "Delete rule", self._delete_selected_rule)
-        elif t == "Blocker":
-            self._link(self.bottom_left, "Delete rule", self._delete_selected_blocker)
         else:
             pass  # Application/Network List: tidak ada aksi bar — hanya Filtered view
         if getattr(self, "activity_tab", None) is not None and (
@@ -249,26 +485,51 @@ class MainWindow(ctk.CTk):
 
     # ---------------- tab switch ----------------
     def _switch_tab(self, name):
+        # Terima nama lama ("Rule List"/"Blocker") demi backward-compat.
+        name = _LEGACY_TAB_ALIASES.get(name, name)
         self.current_tab = name
         for n, w in self._tab_widgets.items():
-            w.pack_forget()
+            try:
+                w.pack_forget()
+            except Exception:
+                pass
         self._tab_widgets[name].pack(fill="both", expand=True)
         self._paint_tabs()
         self._refresh_bottombar()
-        if name == "Rule List":
+        if name == "Rules":
             self.rule_list_tab.update_rules(self.rules_mgr.get_all_rules())
         elif name == "Network List":
             self.network_list_tab.refresh_adapters()
         elif name == "Application List":
             self.app_list_tab.update_apps(self.tracker.get_all_apps())
-        elif name == "Blocker":
-            self.blocker_tab.update_blockers(self.rules_mgr.get_all_rules())
         self._periodic_refresh()
 
     # ---------------- selection ----------------
     def _on_search(self, _e=None):
         self.activity_tab.search_query = self.search_entry.get()
+        self._sync_clear_button()
         self._refresh_bottombar()
+
+    def _sync_clear_button(self) -> None:
+        """Tampilkan tombol × hanya saat ada teks di search."""
+        try:
+            has_text = bool(self.search_entry.get().strip())
+        except Exception:
+            has_text = False
+        try:
+            if has_text:
+                self.btn_clear_search.pack(side="left", padx=(4, 0))
+            else:
+                self.btn_clear_search.pack_forget()
+        except Exception:
+            pass
+
+    def _clear_search(self) -> None:
+        try:
+            self.search_entry.delete(0, "end")
+        except Exception:
+            pass
+        self._on_search()
 
     def _on_app_selected(self, app_name):
         # "__device__" = baris "-" (perangkat ini) -> editor global limit
@@ -312,22 +573,31 @@ class MainWindow(ctk.CTk):
         self.traffic_chart.set_target(nic.get("name", ""), None, 0, 0)
 
     # ---------------- rules ----------------
+    def _ensure_shaper_for_rules(self) -> None:
+        """Start WinDivert engine bila ada limit/blocker aktif (limit ATAU blocker).
+
+        Sebelumnya hanya cek master_limiter_enabled, sehingga blocker saja
+        tidak pernah menghidupkan engine (blocker terlihat 'tidak berfungsi').
+        """
+        try:
+            if not self.is_elevated or self.shaper.is_running:
+                return
+            if not (self.rules_mgr.master_limiter_enabled or self.rules_mgr.master_blocker_enabled):
+                return
+            if not self.rules_mgr.has_any_limiting():
+                return
+            self.shaper.start()
+        except Exception as e:
+            logger.error(f"shaper start: {e}")
+
     def _on_global_changed(self, limit_in, limit_out, block_in, block_out):
         self.rules_mgr.set_global_limit(limit_in, limit_out, block_in, block_out)
-        if self.is_elevated and not self.shaper.is_running and self.rules_mgr.master_limiter_enabled:
-            try:
-                self.shaper.start()
-            except Exception as e:
-                logger.error(f"shaper start: {e}")
+        self._ensure_shaper_for_rules()
         self._periodic_refresh()
 
     def _on_rule_changed(self, rule: Rule):
         self.rules_mgr.set_rule(rule)
-        if self.is_elevated and not self.shaper.is_running and self.rules_mgr.master_limiter_enabled:
-            try:
-                self.shaper.start()
-            except Exception as e:
-                logger.error(f"shaper start: {e}")
+        self._ensure_shaper_for_rules()
         self._periodic_refresh()
 
     def _on_delete_rule(self, app_name):
@@ -348,12 +618,9 @@ class MainWindow(ctk.CTk):
         else:
             self._hint_select("rule")
 
+    # Compat: dulu ada tab Blocker terpisah dengan aksi hapus sendiri.
     def _delete_selected_blocker(self):
-        row = self.blocker_tab.get_selected()
-        if row.get("for") and row.get("rule") is not None:
-            self._on_delete_rule(row["for"])
-        else:
-            self._hint_select("blocker")
+        return self._delete_selected_rule()
 
     @staticmethod
     def _hint_select(what: str) -> None:
@@ -377,15 +644,20 @@ class MainWindow(ctk.CTk):
         enabled = bool(self.var_limiter.get())
         self.rules_mgr.master_limiter_enabled = enabled
         self.rules_mgr.save()
-        if enabled and self.is_elevated and not self.shaper.is_running:
-            try:
-                self.shaper.start()
-            except Exception as e:
-                logger.error(f"Error enabling shaper: {e}")
+        if enabled:
+            self._ensure_shaper_for_rules()
+        try:
+            if self._tray is not None:
+                self._tray.refresh_menu()
+                self._update_tray_tooltip()
+        except Exception:
+            pass
 
     def _on_master_blocker(self):
         self.rules_mgr.master_blocker_enabled = bool(self.var_blocker.get())
         self.rules_mgr.save()
+        if bool(self.var_blocker.get()):
+            self._ensure_shaper_for_rules()
 
     # ---------------- refresh ----------------
     def _periodic_refresh(self):
@@ -411,14 +683,9 @@ class MainWindow(ctk.CTk):
                     self.app_list_tab.update_apps(apps)
                 except Exception:
                     pass
-            elif self.current_tab == "Rule List":
+            elif self.current_tab in ("Rules", "Rule List", "Blocker"):
                 try:
                     self.rule_list_tab.update_rules(self.rules_mgr.get_all_rules())
-                except Exception:
-                    pass
-            elif self.current_tab == "Blocker":
-                try:
-                    self.blocker_tab.update_blockers(self.rules_mgr.get_all_rules())
                 except Exception:
                     pass
             hist = self.tracker.get_history(self.selected_app_name)
@@ -450,10 +717,17 @@ class MainWindow(ctk.CTk):
                 total_dl_bytes = sum(a.total_dl for a in apps)
                 total_ul_bytes = sum(a.total_ul for a in apps)
                 self.traffic_chart.set_target("Total Traffic", None, total_dl_bytes, total_ul_bytes)
+            # Hover tray icon = kecepatan DL & UL total (live).
+            try:
+                self._update_tray_tooltip()
+            except Exception:
+                pass
         except Exception:
             pass
         finally:
             try:
-                self._refresh_after = self.after(500, self._periodic_refresh)
+                # Jangan jadwalkan refresh baru saat sedang shutdown/destroy.
+                if not getattr(self, "_shutting_down", False) and self.winfo_exists():
+                    self._refresh_after = self.after(500, self._periodic_refresh)
             except Exception:
                 pass
