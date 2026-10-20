@@ -425,8 +425,11 @@ class NetworkTracker:
                     self.app_histories[app_name] = deque(maxlen=self.history_length)
                 self.app_histories[app_name].append((now, dl_rate, ul_rate))
 
-            # Record system-wide total history
-            self.total_history.append((now, total_dl_sec, total_ul_sec))
+            # Record system-wide total history.  Fall back to the NIC counters
+            # so the chart also moves in monitoring mode (no WinDivert).
+            self.total_history.append((now,
+                                       max(total_dl_sec, self.nic_dl_rate),
+                                       max(total_ul_sec, self.nic_ul_rate)))
 
             # Self-check presisi: grup vs jumlah per-app harus konsisten karena
             # berasal dari paket yang sama. Jika grup jauh lebih besar, catat

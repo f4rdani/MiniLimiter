@@ -31,8 +31,8 @@ _TILE_COLORS = (
     "#546e7a", "#6d4c41",
 )
 
-_pil_cache: Dict[Tuple[str, int], object] = {}
-_photo_cache: Dict[Tuple[str, int, object], object] = {}
+_pil_cache: Dict[Tuple[str, int, int], object] = {}
+_photo_cache: Dict[Tuple[str, int, object, int], object] = {}
 
 
 def tile_color(app_name: str) -> str:
@@ -50,12 +50,12 @@ def tile_letter(app_name: str) -> str:
     return "•"
 
 
-def _render_tile(app_name: str, size: int):
+def _render_tile(app_name: str, size: int, pad_right: int = 0):
     """Gambar PIL tile (tanpa Tk) — bisa di-cache lintas interpreter."""
     name = (app_name or "").lower().strip() or "?"
     color = tile_color(name)
     letter = tile_letter(app_name or "?")
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    img = Image.new("RGBA", (size + max(0, int(pad_right)), size), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     try:
         d.rounded_rectangle([0, 0, size - 1, size - 1], radius=max(2, size // 4), fill=color)
@@ -75,12 +75,15 @@ def _render_tile(app_name: str, size: int):
     return img
 
 
-def get_app_tile(app_name: str, size: int = 16, master=None):
+def get_app_tile(app_name: str, size: int = 16, master=None, pad_right: int = 0):
     """Bangun (atau ambil dari cache) ikon tile PhotoImage untuk Treeview.
 
     `master` = widget Treeview pemilik (dipakai sebagai master PhotoImage agar
     ikon menempel ke interpreter Tk yang benar — wajib saat ada >1 root,
     mis. antar test). Tanpa master dipakai default root.
+
+    `pad_right` menambah ruang transparan di kanan tile agar teks Treeview
+    tidak menempel ke ikon (Treeview tidak punya padding antar-cell).
 
     Returns None bila Pillow/Tk tidak tersedia (headless) — pemanggil
     wajib memakai `tile or ""` saat insert ke Treeview.
@@ -89,13 +92,14 @@ def get_app_tile(app_name: str, size: int = 16, master=None):
         return None
     name = (app_name or "").lower().strip()
     size = int(size)
+    pad_right = max(0, int(pad_right))
     interp = None
     if master is not None:
         try:
             interp = id(master.tk)
         except Exception:
             interp = None
-    key = (name, size, interp)
+    key = (name, size, interp, pad_right)
     hit = _photo_cache.get(key)
     if hit is not None:
         try:
@@ -104,10 +108,10 @@ def get_app_tile(app_name: str, size: int = 16, master=None):
         except Exception:
             _photo_cache.pop(key, None)
     try:
-        pil_key = (name, size)
+        pil_key = (name, size, pad_right)
         pil = _pil_cache.get(pil_key)
         if pil is None:
-            pil = _render_tile(app_name or "?", size)
+            pil = _render_tile(app_name or "?", size, pad_right)
             _pil_cache[pil_key] = pil
         if master is not None:
             photo = ImageTk.PhotoImage(image=pil, master=master)

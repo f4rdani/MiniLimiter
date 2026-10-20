@@ -1,131 +1,164 @@
-"""MiniLimiter Dark Theme (NetLimiter-inspired, modern polish).
+"""MiniLimiter dark theme.
 
-Token terpusat agar search / tabel / tombol / dropdown konsisten.
-Nama lama dipertahankan demi backward-compat dengan modul UI lain.
+A single source of truth for colours, spacing and ttk styling so every tab,
+panel, table and control speaks the same visual language.  Legacy token names
+are kept intact for the other UI modules (and for older tests).
 """
 
-# Layout
-BG_APP = "#1e1e1e"            # main window background
-BG_DARK = "#1e1e1e"
-BG_PANEL = "#252526"          # toolbar / panel
-BG_TABLE = "#1e1e1e"          # tree background
-BG_HEADER = "#2d2d2d"         # column header (legacy, lihat HEADER_BG baru)
-BG_SECONDARY = "#1e1e1e"
-BG_ROW_HOVER = "#2a2d2e"
-BG_ROW_SELECTED = "#007acc"   # selected row blue (NetLimiter)
-SELECT_BLUE = "#007acc"
+# ---------------------------------------------------------------------------
+# Layout / surfaces
+# ---------------------------------------------------------------------------
+BG_APP = "#0d1014"             # window / empty space
+BG_DARK = "#0d1014"
+BG_PANEL = "#171c23"           # toolbar, side panel
+BG_PANEL_ALT = "#12171d"       # recessed panel
+BG_TABLE = "#11161c"           # tree background
+BG_CARD = "#1b212a"            # cards inside panels
+BG_CARD_ALT = "#232c38"
+BG_HOVER = "#2a3442"
+BG_SECONDARY = "#171c23"
+BG_HEADER = "#1d242e"
+BG_ROW_HOVER = "#242d39"
+BG_ROW_SELECTED = "#2a6da8"
+SELECT_BLUE = "#2c7fc7"
 
-# Tabs (NetLimiter active tab = yellow)
-TAB_ACTIVE_BG = "#c9b400"
-TAB_ACTIVE_TEXT = "#000000"
-TAB_BG = "#2d2d2d"
-TAB_TEXT = "#d0d0d0"
+# Tabs
+TAB_ACTIVE_BG = "#f0c94f"      # NetLimiter-style yellow indicator
+TAB_ACTIVE_TEXT = "#101318"
+TAB_BG = "transparent"
+TAB_TEXT = "#bcc7d6"
+TAB_HOVER = "#252e3a"
 
 # Accents
-ACCENT_LIME = "#7cbb00"       # NetLimiter lime dots / DL
-DOT_GREEN = "#7cbb00"
-DOT_GRAY = "#b5b5b5"
-COLOR_DOWNLOAD = "#7cbb00"    # chart + DL green
-COLOR_UPLOAD = "#e51400"      # chart + UL red
-COLOR_LIMIT_BADGE = "#3498db"
-LIMIT_BLUE = "#1f6fb2"        # limit value badge
+ACCENT = "#6cb5ff"
+ACCENT_HOVER = "#8cc7ff"
+ACCENT_SOFT = "#173a5c"
+ACCENT_LIME = "#9ee66b"
+DOT_GREEN = "#9ee66b"
+DOT_GRAY = "#737f92"
+DOT_AMBER = "#f0c94f"
+COLOR_DOWNLOAD = "#9ee66b"
+COLOR_UPLOAD = "#ff9090"
+COLOR_LIMIT_BADGE = "#7cc2ff"
+LIMIT_BLUE = "#2b6ea8"
+PRIMARY_BG = "#3a8df0"
+PRIMARY_HOVER = "#5aa2ff"
+DANGER_BG = "#c65454"
+DANGER_HOVER = "#de6b6b"
+WARN = "#f0b34d"
 
-# Text (diterangkan agar mudah dibaca — tanpa teks redup)
-TEXT_MAIN = "#ffffff"
-TEXT_MUTED = "#d6d6d6"
-TEXT_DISABLED = "#9a9a9a"
-TEXT_LINK = "#6db8f2"         # blue links (Traffic stats, Add rule...)
-TEXT_GREEN = "#8fd400"        # Active state
-TEXT_YELLOW = "#e5c500"
+# Text
+TEXT_MAIN = "#f3f6fb"
+TEXT_MUTED = "#c9d2df"
+TEXT_DISABLED = "#8a96a8"
+TEXT_SUBTLE = "#aab5c5"
+TEXT_LINK = "#86c6ff"
+TEXT_GREEN = "#9ee66b"
+TEXT_YELLOW = "#f0c94f"
+TEXT_RED = "#ff9d9d"
 
-BORDER_COLOR = "#3c3c3c"
-FONT_FAMILY = "Segoe UI"
-FONT_SIZE = 11
-
-# --- polish tokens (baru, dipakai tombol/search/dropdown/card) ---
-SURFACE_1 = "#252526"   # panel
-SURFACE_2 = "#2b2b2b"   # card / header
-SURFACE_3 = "#333333"   # idle button / pill
-HEADER_BG = "#262626"
-HEADER_FG = "#e8e8e8"
-ROW_ALT_BG = "#232323"
-ROW_SEL_BG = "#0e639c"
+# Lines / controls
+BORDER_COLOR = "#3a4554"
+BORDER_STRONG = "#536176"
+GRID_COLOR = "#303947"
+SURFACE_1 = "#171c23"
+SURFACE_2 = "#232c38"
+SURFACE_3 = "#303b4a"
+HEADER_BG = "#1e2631"
+HEADER_FG = "#e8eef7"
+ROW_ALT_BG = "#171d25"
+ROW_SEL_BG = "#2a6da8"
 ROW_SEL_FG = "#ffffff"
-GRID_COLOR = "#2a2a2a"
-BTN_BG = "#2f2f2f"
-BTN_HOVER = "#3d3d3d"
-BTN_ACTIVE_BG = "#c9b400"
-BTN_ACTIVE_FG = "#000000"
-PRIMARY_BG = "#007acc"
-PRIMARY_HOVER = "#1a86d0"
-DANGER_BG = "#a83a3a"
-INPUT_BG = "#1b1b1b"
-INPUT_BORDER = "#3d3d3d"
-INPUT_FOCUS = "#007acc"
+BTN_BG = "#2a3441"
+BTN_HOVER = "#3b4859"
+BTN_ACTIVE_BG = "#f0c94f"
+BTN_ACTIVE_FG = "#101318"
+INPUT_BG = "#11161d"
+INPUT_BORDER = "#4c5a6e"
+INPUT_FOCUS = "#6cb5ff"
+CHIP_BG = "#2a3441"
 RADIUS_SM = 4
-RADIUS_MD = 6
-RADIUS_PILL = 16
+RADIUS_MD = 8
+RADIUS_LG = 10
+RADIUS_PILL = 999
 
-# Scrollbar gelap (ganti default terang ttk yang jadi "kotak putih")
-SCROLL_BG = "#2d2d2d"       # track
-SCROLL_SLIDER = "#4d4d4d"   # thumb
-SCROLL_ACTIVE = "#6b6b6b"   # thumb hover
-SCROLL_ARROW = "#b5b5b5"
+# Scrollbar
+SCROLL_BG = "#11161c"
+SCROLL_SLIDER = "#4a5769"
+SCROLL_ACTIVE = "#66758a"
+SCROLL_ARROW = "#11161c"
+
+# Fonts
+FONT_FAMILY = "Segoe UI"
+FONT_MONO = "Consolas"
+FONT_SIZE = 12
 
 
 def apply_dark_ttk():
-    """Terapkan sekali saat startup: theme clam + scrollbar default gelap.
-
-    Tanpa ini, ttk.Scrollbar polos tampil putih terang (kotak putih jelek).
-    """
+    """Configure global ttk styles once at startup (clam + dark scrollbars)."""
     from tkinter import ttk
     style = ttk.Style()
     try:
         style.theme_use("clam")
     except Exception:
         pass
+
     for orient in ("Vertical", "Horizontal"):
         sname = orient + ".TScrollbar"
+        try:
+            style.configure(
+                sname,
+                background=SCROLL_SLIDER,
+                troughcolor=SCROLL_BG,
+                bordercolor=SCROLL_BG,
+                lightcolor=SCROLL_SLIDER,
+                darkcolor=SCROLL_SLIDER,
+                arrowcolor=SCROLL_ARROW,
+                arrowsize=1,
+                width=13,
+                relief="flat",
+                borderwidth=0,
+            )
+            style.map(
+                sname,
+                background=[("active", SCROLL_ACTIVE), ("pressed", SCROLL_ACTIVE)],
+                arrowcolor=[("active", SCROLL_ARROW), ("pressed", SCROLL_ARROW)],
+            )
+        except Exception:
+            pass
+
+    # Draggable panel dividers (dark, thin, with a little breathing room).
+    for name in ("Dark.TPanedwindow", "Dark.Vertical.TPanedwindow",
+                 "Dark.Horizontal.TPanedwindow"):
+        try:
+            style.configure(name, background=BORDER_COLOR, borderwidth=0,
+                            sashwidth=8, sashrelief="flat", gripcount=0)
+        except Exception:
+            pass
+
+    try:
         style.configure(
-            sname,
-            background=SCROLL_SLIDER,
-            troughcolor=SCROLL_BG,
-            bordercolor=BG_APP,
-            arrowcolor=SCROLL_ARROW,
+            "Dark.TCombobox",
+            fieldbackground=INPUT_BG,
+            background=SURFACE_3,
+            foreground=TEXT_MAIN,
+            arrowcolor=TEXT_MUTED,
+            borderwidth=1,
             relief="flat",
-            borderwidth=0,
-            arrowsize=12,
+            padding=4,
         )
-        style.map(sname, background=[("active", SCROLL_ACTIVE), ("pressed", SCROLL_ACTIVE)])
-    # Divider drag antar panel (gelap, bukan putih)
-    try:
-        style.configure("Dark.TPanedwindow", background="#2d2d2d", borderwidth=0,
-                        sashwidth=6, sashrelief="flat")
-        style.configure("Dark.Vertical.TPanedwindow", background="#2d2d2d", borderwidth=0,
-                        sashwidth=6, sashrelief="flat")
-        style.configure("Dark.Horizontal.TPanedwindow", background="#2d2d2d", borderwidth=0,
-                        sashwidth=6, sashrelief="flat")
-    except Exception:
-        pass
-    # Combobox dropdown gelap (default clam terang).
-    try:
-        style.configure("Dark.TCombobox", fieldbackground=INPUT_BG, background=SURFACE_3,
-                        foreground=TEXT_MAIN, arrowcolor=TEXT_MUTED, borderwidth=1,
-                        relief="flat", padding=4)
-        style.map("Dark.TCombobox",
-                  fieldbackground=[("readonly", INPUT_BG), ("focus", INPUT_BG)],
-                  foreground=[("disabled", TEXT_DISABLED)],
-                  bordercolor=[("focus", INPUT_FOCUS)])
+        style.map(
+            "Dark.TCombobox",
+            fieldbackground=[("readonly", INPUT_BG), ("focus", INPUT_BG)],
+            foreground=[("disabled", TEXT_DISABLED)],
+            bordercolor=[("focus", INPUT_FOCUS)],
+        )
     except Exception:
         pass
 
 
-def style_table(style_name: str, rowheight: int = 26, font_size: int = 11) -> None:
-    """Style Treeview terpadu: header flat gelap + baris belang + seleksi biru.
-
-    Dipakai semua tab tabel agar search/tabel terlihat satu bahasa desain.
-    Aman dipanggil berulang (configure ulang style yang sama).
-    """
+def style_table(style_name: str, rowheight: int = 31, font_size: int = 12) -> None:
+    """Style a Treeview consistently: flat dark header + clean readable rows."""
     from tkinter import ttk
     style = ttk.Style()
     try:
@@ -133,25 +166,82 @@ def style_table(style_name: str, rowheight: int = 26, font_size: int = 11) -> No
     except Exception:
         pass
     try:
-        style.configure(style_name, background=BG_TABLE, foreground=TEXT_MAIN,
-                        fieldbackground=BG_TABLE, rowheight=rowheight,
-                        font=(FONT_FAMILY, font_size), borderwidth=0, relief="flat",
-                        focuscolor=BG_TABLE, lightcolor=BG_TABLE, darkcolor=BG_TABLE)
-        style.configure(f"{style_name}.Heading", background=HEADER_BG, foreground=HEADER_FG,
-                        font=(FONT_FAMILY, font_size, "bold"), relief="flat",
-                        borderwidth=0, padding=(8, 6))
-        style.map(style_name,
-                  background=[("selected", ROW_SEL_BG)],
-                  foreground=[("selected", ROW_SEL_FG)])
-        style.map(f"{style_name}.Heading",
-                  background=[("active", "#333333")],
-                  foreground=[("active", "#ffffff")])
+        style.configure(
+            style_name,
+            background=BG_TABLE,
+            foreground=TEXT_MAIN,
+            fieldbackground=BG_TABLE,
+            rowheight=rowheight,
+            font=(FONT_FAMILY, font_size),
+            borderwidth=0,
+            relief="flat",
+            focuscolor=BG_TABLE,
+            lightcolor=BG_TABLE,
+            darkcolor=BG_TABLE,
+        )
+        style.configure(
+            f"{style_name}.Heading",
+            background=HEADER_BG,
+            foreground=HEADER_FG,
+            font=(FONT_FAMILY, 11, "bold"),
+            relief="flat",
+            borderwidth=0,
+            padding=(10, 8),
+        )
+        style.map(
+            style_name,
+            background=[("selected", ROW_SEL_BG)],
+            foreground=[("selected", ROW_SEL_FG)],
+        )
+        style.map(
+            f"{style_name}.Heading",
+            background=[("active", SURFACE_3)],
+            foreground=[("active", "#ffffff")],
+        )
     except Exception:
         pass
+
+
+def fit_text(text: str, pixels: int, reserve: int = 0,
+             char_width: float = 6.6) -> str:
+    """Truncate a label with an ellipsis so it fits the given pixel width.
+
+    Tables clip text without any marker, which reads like a bug.  This keeps
+    the value readable ("Antimalware Service Exec…") on every column width.
+    """
+    text = text or ""
+    if pixels <= 0:
+        return text
+    usable = pixels - reserve
+    max_chars = int(usable / char_width)
+    if max_chars < 4:
+        max_chars = 4
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars - 1].rstrip() + "…"
+
+
+def tree_col_width(tree, col: str, default: int = 120) -> int:
+    """Displayed width of a treeview column (accounts for stretching)."""
+    try:
+        children = tree.get_children("")
+        if children:
+            bbox = tree.bbox(children[0], col)
+            if bbox and bbox[2] > 0:
+                return int(bbox[2])
+    except Exception:
+        pass
+    try:
+        width = int(tree.column(col, "width"))
+        if width > 0:
+            return width
+    except Exception:
+        pass
+    return default
 
 
 def decorate_tree(tree, alt_bg: str = ROW_ALT_BG) -> None:
-    """Tag belang + seleksi standar untuk sebuah Treeview."""
+    """Standard zebra + state tags for a Treeview."""
     try:
         tree.tag_configure("alt", background=alt_bg)
         tree.tag_configure("active", foreground=TEXT_GREEN)
@@ -161,7 +251,7 @@ def decorate_tree(tree, alt_bg: str = ROW_ALT_BG) -> None:
 
 
 def bind_mousewheel(tree):
-    """Scroll roda mouse untuk ttk.Treeview (Windows/macOS/Linux)."""
+    """Mouse-wheel scrolling for a ttk.Treeview (Windows/macOS/Linux)."""
     def _on_wheel(e):
         try:
             delta = 0
@@ -174,6 +264,7 @@ def bind_mousewheel(tree):
         except Exception:
             pass
         return "break"
+
     try:
         tree.bind("<MouseWheel>", _on_wheel)
         tree.bind("<Button-4>", lambda e: tree.yview_scroll(-1, "units"))
