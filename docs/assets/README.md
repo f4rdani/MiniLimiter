@@ -12,6 +12,7 @@ Semua file diletakkan di folder ini dengan **nama persis** seperti di bawah (for
 | `04-blocker.png` | Activity filter **Limited**: Microsoft Edge berstatus **Blocked**, Info View mencentang **Block In + Block Out** | Dari `blocked.png` |
 | `05-applications.png` | Tab **Application List** — daftar proses + Status + Executable path | Dari screenshot Applications |
 | `06-network.png` | Tab Network — adapter, tipe, status | **IP sudah disensor** (ditutup `* * * *`) |
+| `07-device-limit.png` | This PC — limit `4,00 MB/s` IN + OUT, badge ↓↑, dua garis di chart | Dari `pc limit.png` |
 | `08-taskmanager.png` | Task Manager → Details → `MiniLimiter.exe` | **CPU 0,4% · Memory 33,1 MB** |
 | `09-tray.png` | Ikon tray + tooltip **DL: 1,23 KB/s · UL: 2,56 KB/s · Limiter: On** | Dari `tray.png` |
 
@@ -19,9 +20,7 @@ Semua file diletakkan di folder ini dengan **nama persis** seperti di bawah (for
 
 ## Masih dibutuhkan ⬜
 
-| File | Tampilan yang harus terlihat |
-|---|---|
-| `07-device-limit.png` | Tab Activity dengan baris **This PC** dipilih → limit total PC + total DL/UL. Ini yang dimaksud **Entire-PC cap** di website. |
+Tidak ada — semua screenshot yang dipakai website sudah tersedia.
 
 ## Angka CPU / RAM
 

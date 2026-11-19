@@ -118,19 +118,38 @@ h2{font-size:clamp(28px,4.2vw,44px);letter-spacing:-1px;line-height:1.15}
 .card .tag{display:inline-block;margin-top:14px;font-size:11px;color:var(--cyan);font-weight:700;letter-spacing:.5px}
 
 /* ---------- screenshots ---------- */
-.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:26px}
-.shot:first-child{grid-column:1/-1}
-.shot{background:rgba(8,28,50,.6);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:zoom-in;transition:.22s ease}
-.shot:hover{transform:translateY(-4px);border-color:var(--cyan)}
-.shot-frame{aspect-ratio:16/10;background:linear-gradient(135deg,#0a2238,#123a58);position:relative;display:grid;place-items:center;overflow:hidden}
-.shot-frame img{width:100%;height:100%;object-fit:contain;object-position:center;background:#0a2238}
+.shots{display:flex;flex-direction:column;gap:18px}
+.shot-row{
+  display:grid;grid-template-columns:0.8fr 1.2fr;gap:32px;align-items:center;
+  background:rgba(8,28,50,.55);border:1px solid var(--border);
+  border-radius:20px;padding:20px;box-shadow:var(--glow);transition:.22s ease;
+}
+.shot-row:hover{border-color:rgba(47,214,232,.5)}
+.shot-row:nth-child(even){grid-template-columns:1.2fr 0.8fr}
+.shot-row:nth-child(even) .shot-visual{order:-1}
+.shot-copy{padding:6px 4px}
+.shot-copy h3{font-size:clamp(20px,2.3vw,27px);letter-spacing:-.5px;line-height:1.22}
+.shot-copy p{color:var(--muted);font-size:14px;margin-top:11px}
+.shot-copy .points{list-style:none;margin-top:14px;display:grid;gap:7px}
+.shot-copy .points li{position:relative;padding-left:20px;font-size:13px;color:var(--muted)}
+.shot-copy .points li::before{content:"›";position:absolute;left:4px;color:var(--teal);font-weight:900}
+.shot-visual{
+  aspect-ratio:16/10;border-radius:12px;overflow:hidden;cursor:zoom-in;
+  border:1px solid var(--border);background:#0a2238;
+  display:grid;place-items:center;transition:.2s ease;
+}
+.shot-visual:hover{transform:translateY(-2px);border-color:var(--cyan)}
+.shot{background:rgba(8,28,50,.6);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:.22s ease}
+.shot:hover{border-color:rgba(47,214,232,.5)}
+.shot-frame{aspect-ratio:16/10;background:linear-gradient(135deg,#0a2238,#123a58);position:relative;display:grid;place-items:center;overflow:hidden;border-radius:12px}
+.shot-frame img,.shot-visual img{width:100%;height:100%;object-fit:contain;object-position:center;background:#0a2238}
 .placeholder{display:none;flex-direction:column;align-items:center;gap:8px;text-align:center;color:var(--aqua);padding:24px}
 .placeholder .ph{font-size:34px;opacity:.7}
 .placeholder code{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--muted);background:rgba(0,0,0,.25);padding:5px 9px;border-radius:6px}
 .placeholder small{font-size:12px;color:var(--muted)}
 .shot figcaption{padding:16px 19px;font-size:14px;font-weight:600}
 .shot figcaption span{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:4px}
-.shot-num{color:var(--cyan);font-size:11px;font-weight:800;letter-spacing:1.6px;margin-right:8px}
+.shot-num{display:block;color:var(--cyan);font-size:11px;font-weight:800;letter-spacing:1.6px;margin-bottom:10px}
 
 /* ---------- performance ---------- */
 .perf{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}
@@ -182,8 +201,9 @@ footer a:hover{color:var(--cyan)}
   .nav-links a{padding:10px 0}
   .menu-toggle{display:block}
   .nav .btn-primary{margin-left:auto}
-  .perf,.two,.shots{grid-template-columns:1fr}
-  .shot:first-child{grid-column:auto}
+  .perf,.two{grid-template-columns:1fr}
+  .shot-row,.shot-row:nth-child(even){grid-template-columns:1fr;gap:16px;padding:15px}
+  .shot-row:nth-child(even) .shot-visual{order:0}
   .hero{padding-top:56px}
 }
 </style>
@@ -263,69 +283,109 @@ footer a:hover{color:var(--cyan)}
       </div>
       <div class="shots reveal">
 
-        <figure class="shot">
-          <div class="shot-frame">
+        <div class="shot-row">
+          <div class="shot-copy">
+            <span class="shot-num">01 · ACTIVITY</span>
+            <h3>Live traffic at a glance</h3>
+            <p>Every running application in one sortable tree, with download and upload rates refreshed twice per second.</p>
+            <ul class="points"><li>Per-app DL/UL rates</li><li>Rule status badges</li><li>Filters: All · Online · Limited</li></ul>
+          </div>
+          <div class="shot-visual">
             <img src="assets/01-activity.png" alt="Activity tab with live per-app download and upload rates" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="placeholder"><div class="ph">▤</div><code>assets/01-activity.png</code><small>Activity · process tree &amp; live rates</small></div>
+            <div class="placeholder"><div class="ph">▤</div><code>assets/01-activity.png</code><small>Activity · process tree</small></div>
           </div>
-          <figcaption><span class="shot-num">01</span>Activity overview<span>Process tree, DL/UL rates and rule status badges</span></figcaption>
-        </figure>
+        </div>
 
-        <figure class="shot">
-          <div class="shot-frame">
+        <div class="shot-row">
+          <div class="shot-copy">
+            <span class="shot-num">02 · INFO VIEW</span>
+            <h3>Limit an app in one click</h3>
+            <p>Select a process, check In or Out, type a speed and apply. The chart immediately draws a flat ceiling at that value.</p>
+            <ul class="points"><li>Presets 512 KB/s – 4 MB/s</li><li>Bare numbers mean MB/s</li><li>Live ceiling line in the chart</li></ul>
+          </div>
+          <div class="shot-visual">
             <img src="assets/02-info-limit-chart.png" alt="Info View showing a 2 MB/s limit and the traffic chart" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="placeholder"><div class="ph">⌁</div><code>assets/02-info-limit-chart.png</code><small>Info View · 2 MB/s limit + chart</small></div>
+            <div class="placeholder"><div class="ph">⌁</div><code>assets/02-info-limit-chart.png</code><small>Info View · 2 MB/s limit</small></div>
           </div>
-          <figcaption><span class="shot-num">02</span>Limit an app<span>Info View with a 2 MB/s cap and the flat ceiling line</span></figcaption>
-        </figure>
+        </div>
 
-        <figure class="shot">
-          <div class="shot-frame">
+        <div class="shot-row">
+          <div class="shot-copy">
+            <span class="shot-num">03 · RULES</span>
+            <h3>Every rule in one table</h3>
+            <p>Limits and blockers live together. Filter the list, then enable, disable or remove any rule without leaving the tab.</p>
+            <ul class="points"><li>Filter All · Limit · Blocker</li><li>Device rules show as This PC</li><li>Active / Disabled state</li></ul>
+          </div>
+          <div class="shot-visual">
             <img src="assets/03-rules-all.png" alt="Rules tab showing limits and blockers" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="placeholder"><div class="ph">▤</div><code>assets/03-rules-all.png</code><small>Rules · All filter</small></div>
           </div>
-          <figcaption><span class="shot-num">03</span>All rules<span>Limit and blocker rules in one sortable table</span></figcaption>
-        </figure>
+        </div>
 
-        <figure class="shot">
-          <div class="shot-frame">
+        <div class="shot-row">
+          <div class="shot-copy">
+            <span class="shot-num">04 · BLOCKER</span>
+            <h3>Drop a connection instantly</h3>
+            <p>Block In and Block Out for a single application. Blocked traffic is dropped before it is counted, and the blocker works even when the limiter is off.</p>
+            <ul class="points"><li>Block In / Block Out switches</li><li>Blocked apps marked in Activity</li><li>Independent master toggle</li></ul>
+          </div>
+          <div class="shot-visual">
             <img src="assets/04-blocker.png" alt="Blocker active on Microsoft Edge with Block In and Block Out enabled" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="placeholder"><div class="ph">⛔</div><code>assets/04-blocker.png</code><small>Blocker · Block In + Block Out</small></div>
+            <div class="placeholder"><div class="ph">⛔</div><code>assets/04-blocker.png</code><small>Blocker · In + Out</small></div>
           </div>
-          <figcaption><span class="shot-num">04</span>Blocker in action<span>Block In and Block Out enabled for an app — its traffic is dropped</span></figcaption>
-        </figure>
+        </div>
 
-        <figure class="shot">
-          <div class="shot-frame">
+        <div class="shot-row">
+          <div class="shot-copy">
+            <span class="shot-num">05 · APPLICATIONS</span>
+            <h3>Know what is running</h3>
+            <p>A complete list of foreground and background processes with their online status and executable path.</p>
+            <ul class="points"><li>Online / Offline status</li><li>Executable path</li><li>Searchable and sortable</li></ul>
+          </div>
+          <div class="shot-visual">
             <img src="assets/05-applications.png" alt="Application list tab" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="placeholder"><div class="ph">▦</div><code>assets/05-applications.png</code><small>Application List tab</small></div>
+            <div class="placeholder"><div class="ph">▦</div><code>assets/05-applications.png</code><small>Application List</small></div>
           </div>
-          <figcaption><span class="shot-num">05</span>Application list<span>Every running process, its status and path</span></figcaption>
-        </figure>
+        </div>
 
-        <figure class="shot">
-          <div class="shot-frame">
-            <img src="assets/06-network.png" alt="Network list tab with adapters" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="placeholder"><div class="ph">⌁</div><code>assets/06-network.png</code><small>Network List tab</small></div>
+        <div class="shot-row">
+          <div class="shot-copy">
+            <span class="shot-num">06 · NETWORK</span>
+            <h3>Adapters and links</h3>
+            <p>See every active adapter with its type, IP address and connection state. Addresses in this demo capture are deliberately redacted.</p>
+            <ul class="points"><li>Wi-Fi · Ethernet · Virtual</li><li>Link state and gateway</li><li>One-click refresh</li></ul>
           </div>
-          <figcaption><span class="shot-num">06</span>Network list<span>Adapters, IP addresses, gateways and link state</span></figcaption>
-        </figure>
-
-        <figure class="shot">
-          <div class="shot-frame">
-            <img src="assets/07-device-limit.png" alt="Device-level limit on This PC" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="placeholder"><div class="ph">▣</div><code>assets/07-device-limit.png</code><small>This PC · overall PC cap</small></div>
+          <div class="shot-visual">
+            <img src="assets/06-network.png" alt="Network list tab with adapters and redacted IP addresses" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="placeholder"><div class="ph">⌁</div><code>assets/06-network.png</code><small>Network List · IP redacted</small></div>
           </div>
-          <figcaption><span class="shot-num">07</span>Entire-PC cap<span>The <b>This PC</b> row sets one total speed limit for the whole computer</span></figcaption>
-        </figure>
+        </div>
 
-        <figure class="shot">
-          <div class="shot-frame">
+        <div class="shot-row">
+          <div class="shot-copy">
+            <span class="shot-num">07 · THIS PC</span>
+            <h3>One cap for the whole computer</h3>
+            <p>The This PC row applies a single total limit to all traffic. Both directions get their own badge and their own ceiling line.</p>
+            <ul class="points"><li>↓ Download + ↑ Upload badges</li><li>Device rules appear in the Rules tab</li><li>Per-app rules still work alongside</li></ul>
+          </div>
+          <div class="shot-visual">
+            <img src="assets/07-device-limit.png" alt="Device-level limit on This PC with both download and upload caps" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="placeholder"><div class="ph">▣</div><code>assets/07-device-limit.png</code><small>This PC · both limits</small></div>
+          </div>
+        </div>
+
+        <div class="shot-row">
+          <div class="shot-copy">
+            <span class="shot-num">08 · TRAY</span>
+            <h3>Out of sight, still working</h3>
+            <p>Close the window and MiniLimiter keeps shaping traffic from the tray. Hover to read live speeds, right-click for quick controls.</p>
+            <ul class="points"><li>Live DL / UL tooltip</li><li>Show · Limiter · Exit menu</li><li>Engine keeps running</li></ul>
+          </div>
+          <div class="shot-visual">
             <img src="assets/09-tray.png" alt="System tray icon with live speed tooltip" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="placeholder"><div class="ph">◉</div><code>assets/09-tray.png</code><small>Tray icon · live DL/UL tooltip</small></div>
+            <div class="placeholder"><div class="ph">◉</div><code>assets/09-tray.png</code><small>Tray · live tooltip</small></div>
           </div>
-          <figcaption><span class="shot-num">08</span>Tray mode<span>Close to tray; hover to read live speeds</span></figcaption>
-        </figure>
+        </div>
 
       </div>
     </div>
@@ -423,16 +483,14 @@ footer a:hover{color:var(--cyan)}
 
 <script>
 function closeBox(){document.getElementById('lightbox').classList.remove('open')}
-document.querySelectorAll('.shot').forEach(function(shot){
-  if(shot.querySelector('figcaption') && !shot.closest('#performance')){
-    shot.addEventListener('click',function(){
-      var img=shot.querySelector('img');
-      if(!img || !img.naturalWidth) return;
-      document.getElementById('lightboxImg').src=img.src;
-      document.getElementById('lightboxImg').alt=img.alt;
-      document.getElementById('lightbox').classList.add('open');
-    });
-  }
+document.querySelectorAll('.shot-visual').forEach(function(visual){
+  visual.addEventListener('click',function(){
+    var img=visual.querySelector('img');
+    if(!img || !img.naturalWidth) return;
+    document.getElementById('lightboxImg').src=img.src;
+    document.getElementById('lightboxImg').alt=img.alt;
+    document.getElementById('lightbox').classList.add('open');
+  });
 });
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeBox()});
 
