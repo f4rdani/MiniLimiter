@@ -27,6 +27,7 @@ class RuleListTab(ctk.CTkFrame):
         self._rows: list = []
         self._iids: list = []
         self._all_rules: List[Rule] = []
+        self._global: dict = {}
         self.filter_mode: str = "All"
         self.search_query: str = ""
         self._filter_btns: dict = {}
@@ -191,6 +192,14 @@ class RuleListTab(ctk.CTkFrame):
         self._all_rules = list(rules or [])
         self._render()
 
+    def update_global(self, global_dict: dict) -> None:
+        """Show device-level (This PC) limits alongside per-app rules."""
+        new = dict(global_dict or {})
+        if new != self._global:
+            self._global = new
+            self._last_sig = None
+        self._render()
+
     # Backward-compat: tab Blocker lama memanggil update_blockers().
     def update_blockers(self, rules: List[Rule]) -> None:
         self._all_rules = list(rules or [])
@@ -219,7 +228,8 @@ class RuleListTab(ctk.CTkFrame):
         # Avoid rebuilding the table every 500 ms (keeps selection + scroll).
         sig = (self.filter_mode, self.search_query,
                tuple((r.app_name, r.limit_in, r.limit_out, r.block_in,
-                      r.block_out, r.enabled) for r in rules))
+                      r.block_out, r.enabled) for r in rules),
+               tuple(sorted((k, str(v)) for k, v in self._global.items())))
         if sig == self._last_sig:
             return
         self._last_sig = sig
@@ -267,6 +277,22 @@ class RuleListTab(ctk.CTkFrame):
                     self.tree.selection_set(iid)
                 except Exception:
                     pass
+
+        # Device-level rules (This PC) live outside the per-app list.
+        g = self._global or {}
+        device = Rule(app_name="This PC")
+        if g.get("limit_in") and self._passes_filter("limit"):
+            add("limit", "Limit", "In", device, format_rate(g["limit_in"]), True)
+            limit_count += 1
+        if g.get("limit_out") and self._passes_filter("limit"):
+            add("limit", "Limit", "Out", device, format_rate(g["limit_out"]), True)
+            limit_count += 1
+        if g.get("block_in") and self._passes_filter("blocker"):
+            add("blocker", "Blocker", "In", device, "Blocked", True)
+            blocker_count += 1
+        if g.get("block_out") and self._passes_filter("blocker"):
+            add("blocker", "Blocker", "Out", device, "Blocked", True)
+            blocker_count += 1
 
         for rule in sorted(rules, key=lambda r: r.app_name):
             app_l = rule.app_name.lower()

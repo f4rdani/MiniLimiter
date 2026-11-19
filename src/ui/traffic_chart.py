@@ -23,6 +23,7 @@ class TrafficChart(ctk.CTkFrame):
         super().__init__(master, fg_color=BG_PANEL, corner_radius=0, **kwargs)
         self.current_app_name = "—"
         self.active_limit_bytes: Optional[int] = None
+        self.active_limit_out_bytes: Optional[int] = None
         self.total_dl_bytes = 0
         self.total_ul_bytes = 0
         self.unit_mode: str = "autoByte"
@@ -76,9 +77,10 @@ class TrafficChart(ctk.CTkFrame):
         self.canvas.bind("<Leave>", self._on_leave)
 
     # ------------------------------------------------------------------ data
-    def set_target(self, app_name, limit_in, total_dl, total_ul):
+    def set_target(self, app_name, limit_in, total_dl, total_ul, limit_out=None):
         self.current_app_name = app_name or "—"
         self.active_limit_bytes = limit_in
+        self.active_limit_out_bytes = limit_out
         self.total_dl_bytes = total_dl
         self.total_ul_bytes = total_ul
         name = self.current_app_name
@@ -141,6 +143,8 @@ class TrafficChart(ctk.CTkFrame):
             max_ul = max(max_ul, ul * 1.25)
         if self.active_limit_bytes:
             max_dl = max(max_dl, self.active_limit_bytes * 1.2)
+        if self.active_limit_out_bytes:
+            max_ul = max(max_ul, self.active_limit_out_bytes * 1.2)
         max_dl = self._nice_max(min(max_dl, 1.25e9))
         max_ul = self._nice_max(min(max_ul, 1.25e9))
 
@@ -208,14 +212,22 @@ class TrafficChart(ctk.CTkFrame):
                           text="Waiting for traffic…",
                           fill=TEXT_DISABLED, font=(FONT_FAMILY, 11))
 
-        # Limit ceiling.
+        # Limit ceilings: download (left axis) + upload (right axis).
         if self.active_limit_bytes and self.active_limit_bytes < max_dl:
             ly = y_dl(self.active_limit_bytes)
             c.create_line(ml, ly, ml + pw, ly, fill=COLOR_LIMIT_BADGE,
                           dash=(4, 3), width=1)
             c.create_text(ml + pw - 4, ly - 3,
-                          text=f"limit {format_rate(self.active_limit_bytes, self.unit_mode)}",
+                          text=f"↓ limit {format_rate(self.active_limit_bytes, self.unit_mode)}",
                           fill=COLOR_LIMIT_BADGE, anchor="e",
+                          font=(FONT_FAMILY, 10, "bold"))
+        if self.active_limit_out_bytes and self.active_limit_out_bytes < max_ul:
+            uy = y_ul(self.active_limit_out_bytes)
+            c.create_line(ml, uy, ml + pw, uy, fill=COLOR_UPLOAD,
+                          dash=(4, 3), width=1)
+            c.create_text(ml + 4, uy - 3,
+                          text=f"↑ limit {format_rate(self.active_limit_out_bytes, self.unit_mode)}",
+                          fill=COLOR_UPLOAD, anchor="w",
                           font=(FONT_FAMILY, 10, "bold"))
 
         # Hover readout.

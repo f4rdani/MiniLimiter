@@ -59,6 +59,7 @@ class MainWindow(ctk.CTk):
         self.is_elevated = is_admin()
         self.selected_app_name: Optional[str] = None
         self.current_tab = "Activity"
+        self._saved_global: Optional[dict] = None  # for Enable after device Disable
         # --- tray state (hide-to-tray, bukan exit) ---
         self._tray = None
         self._is_hidden_to_tray = False
@@ -806,7 +807,7 @@ class MainWindow(ctk.CTk):
         self._refresh_bottombar()
         self._update_search_placeholder()
         if name == "Rules":
-            self.rule_list_tab.update_rules(self.rules_mgr.get_all_rules())
+            self._refresh_rules_tab()
         elif name == "Network List":
             self.network_list_tab.refresh_adapters()
         elif name == "Application List":
@@ -872,7 +873,7 @@ class MainWindow(ctk.CTk):
                     group_totals=group_totals,
                     total_rates=self.tracker.get_total_rates())
             elif self.current_tab == "Rules":
-                self.rule_list_tab.update_rules(self.rules_mgr.get_all_rules())
+                self._refresh_rules_tab()
             elif self.current_tab == "Application List":
                 self.app_list_tab.update_apps(self.tracker.get_all_apps())
             elif self.current_tab == "Network List":
@@ -917,7 +918,8 @@ class MainWindow(ctk.CTk):
                 host = "This PC"
             if not host or host.strip() in ("-", "This computer"):
                 host = "This PC"
-            self.traffic_chart.set_target(host, g.get("limit_in"), total_dl, total_ul)
+            self.traffic_chart.set_target(host, g.get("limit_in"), total_dl, total_ul,
+                                          g.get("limit_out"))
             return
         self.selected_app_name = app_name
         info = self.tracker.get_app(app_name) or ProcessInfo(name=app_name)
@@ -928,15 +930,21 @@ class MainWindow(ctk.CTk):
             fi = {}
         self.info_view.set_app(info, rule, fi)
         lim = rule.limit_in if (rule and rule.enabled) else None
-        self.traffic_chart.set_target(app_name, lim, info.total_dl, info.total_ul)
+        lim_out = rule.limit_out if (rule and rule.enabled) else None
+        self.traffic_chart.set_target(app_name, lim, info.total_dl, info.total_ul, lim_out)
 
     def _on_rule_selected(self, row):
+        # Device rules are not real per-app Rule objects — use the device editor.
+        if row.get("for") == "This PC":
+            self._on_app_selected("__device__")
+            return
         self.info_view.set_rule(row)
         rule = row.get("rule")
         if rule is not None:
             self.selected_app_name = rule.app_name
             info = self.tracker.get_app(rule.app_name) or ProcessInfo(name=rule.app_name)
-            self.traffic_chart.set_target(rule.app_name, rule.limit_in, info.total_dl, info.total_ul)
+            self.traffic_chart.set_target(rule.app_name, rule.limit_in, info.total_dl,
+                                          info.total_ul, rule.limit_out)
         else:
             self.traffic_chart.set_target(row.get("for", ""), None, 0, 0)
 
@@ -972,11 +980,34 @@ class MainWindow(ctk.CTk):
         self._ensure_shaper_for_rules()
         self._periodic_refresh()
 
+    def _refresh_rules_tab(self) -> None:
+        """Feed both per-app rules and device-level rules into the Rules tab."""
+        try:
+            self.rule_list_tab.update_rules(self.rules_mgr.get_all_rules())
+            self.rule_list_tab.update_global(self.rules_mgr.get_global_limit())
+        except Exception:
+            pass
+
     def _on_delete_rule(self, app_name):
-        self.rules_mgr.remove_rule(app_name)
+        if app_name == "This PC":
+            self.rules_mgr.set_global_limit(None, None, False, False)
+        else:
+            self.rules_mgr.remove_rule(app_name)
         self._periodic_refresh()
 
     def _on_toggle_rule(self, app_name, enabled=None):
+        if app_name == "This PC":
+            # Device rules are a single global config: stash it while disabled.
+            if enabled is False:
+                self._saved_global = self.rules_mgr.get_global_limit()
+                self.rules_mgr.set_global_limit(None, None, False, False)
+            else:
+                g = self._saved_global or {}
+                self.rules_mgr.set_global_limit(
+                    g.get("limit_in"), g.get("limit_out"),
+                    bool(g.get("block_in")), bool(g.get("block_out")))
+            self._periodic_refresh()
+            return
         r = self.rules_mgr.get_rule_any(app_name)
         if r:
             r.enabled = (not r.enabled) if enabled is None else bool(enabled)
@@ -1071,7 +1102,7 @@ class MainWindow(ctk.CTk):
                     pass
             elif self.current_tab in ("Rules", "Rule List", "Blocker"):
                 try:
-                    self.rule_list_tab.update_rules(self.rules_mgr.get_all_rules())
+                    self._refresh_rules_tab()
                 except Exception:
                     pass
             hist = self.tracker.get_history(self.selected_app_name)
@@ -1094,17 +1125,20 @@ class MainWindow(ctk.CTk):
                     host = "This PC"
                 if not host or host.strip() in ("-", "This computer"):
                     host = "This PC"
-                self.traffic_chart.set_target(host, g.get("limit_in"), total_dl_bytes, total_ul_bytes)
+                self.traffic_chart.set_target(host, g.get("limit_in"), total_dl_bytes,
+                                              total_ul_bytes, g.get("limit_out"))
             elif self.selected_app_name:
                 info = self.tracker.get_app(self.selected_app_name)
                 rule = all_rules.get(self.selected_app_name)
                 lim = rule.limit_in if (rule and rule.enabled) else None
+                lim_out = rule.limit_out if (rule and rule.enabled) else None
                 if info:
                     try:
                         self.info_view.update_app_totals(info.total_dl, info.total_ul)
                     except Exception:
                         pass
-                    self.traffic_chart.set_target(self.selected_app_name, lim, info.total_dl, info.total_ul)
+                    self.traffic_chart.set_target(self.selected_app_name, lim, info.total_dl,
+                                                  info.total_ul, lim_out)
             else:
                 total_dl_bytes = sum(a.total_dl for a in apps)
                 total_ul_bytes = sum(a.total_ul for a in apps)

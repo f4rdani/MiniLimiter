@@ -382,6 +382,55 @@ class TestMainWindowSmoke(unittest.TestCase):
         # Lookup rule harus memakai (limiter_on or blocker_on), bukan limiter saja.
         self.assertIn("limiter_on or blocker_on", src)
 
+    def test_device_rules_visible_and_upload_limit_on_chart(self):
+        """Device limits show in Rules and both ceilings show on the chart."""
+        try:
+            import tkinter as tk
+            root = tk.Tk()
+            root.withdraw()
+            root.destroy()
+        except Exception as e:
+            self.skipTest(f"no display: {e}")
+            return
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from src.core.rules_manager import RulesManager
+        from src.core.shaper import TrafficShaper
+        from src.core.tracker import NetworkTracker
+        from src.ui.main_window import MainWindow
+
+        with TemporaryDirectory() as tmp:
+            rules = RulesManager(Path(tmp) / "rules.json")
+            rules.set_global_limit(1024 * 1024, 4 * 1024 * 1024, False, True)
+            tracker = NetworkTracker(scan_interval=0.2, history_length=10)
+            shaper = TrafficShaper(tracker, rules)
+            tracker.start()
+            try:
+                app = MainWindow(tracker, rules, shaper)
+                app.update()
+                app._refresh_rules_tab()
+                app.update()
+                values = [app.rule_list_tab.tree.item(iid)["values"]
+                          for iid in app.rule_list_tab.tree.get_children()]
+                rendered = " ".join(" ".join(v) for v in values)
+                self.assertIn("This PC", rendered)
+                self.assertIn("1,00 MB/s", rendered)
+                self.assertIn("4,00 MB/s", rendered)
+
+                app._on_app_selected("__device__")
+                app.update()
+                self.assertEqual(app.traffic_chart.active_limit_bytes, 1024 * 1024)
+                self.assertEqual(app.traffic_chart.active_limit_out_bytes, 4 * 1024 * 1024)
+            finally:
+                try:
+                    tracker.stop()
+                except Exception:
+                    pass
+                try:
+                    app.destroy()
+                except Exception:
+                    pass
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -27,6 +27,23 @@ class TestFormatters(unittest.TestCase):
         self.assertEqual(parse_rate_string("512 KB/s"), 512 * 1024)
         self.assertEqual(parse_rate_string("1.5 MB/s"), int(1.5 * 1024 * 1024))
         self.assertEqual(parse_rate_string("2"), 2 * 1024 * 1024)
+        self.assertEqual(parse_rate_string("1"), 1024 * 1024)
+        self.assertEqual(parse_rate_string("0.1"), int(0.1 * 1024 * 1024))
+        self.assertEqual(parse_rate_string("4"), 4 * 1024 * 1024)
+
+
+class TestGlobalRules(unittest.TestCase):
+    def test_global_limits_persist(self):
+        with TemporaryDirectory() as tmp_dir:
+            config_file = Path(tmp_dir) / "rules.json"
+            mgr = RulesManager(config_file)
+            mgr.set_global_limit(1024 * 1024, 4 * 1024 * 1024, False, True)
+            reloaded = RulesManager(config_file)
+            g = reloaded.get_global_limit()
+            self.assertEqual(g["limit_in"], 1024 * 1024)
+            self.assertEqual(g["limit_out"], 4 * 1024 * 1024)
+            self.assertTrue(g["block_out"])
+            self.assertTrue(reloaded.has_any_limiting())
 
 
 class TestTokenBucket(unittest.TestCase):

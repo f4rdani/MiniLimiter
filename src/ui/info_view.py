@@ -627,6 +627,31 @@ class InfoView(ctk.CTkFrame):
         self._apply_feedback.pack(anchor="w", pady=(3, 0))
 
     # ---------------------------------------------------------------- actions
+    def _parse_entry(self, entry, checked: bool, default: int):
+        """Parse a limit field. Bare numbers mean MB/s (e.g. '1' -> 1 MB/s)."""
+        if not checked:
+            return None, None
+        text = (entry.get() or "").strip()
+        if not text:
+            return default, None
+        try:
+            value = parse_rate_string(text)
+        except Exception:
+            return None, f"Invalid value '{text}' — try '1' or '512 KB/s'"
+        if value <= 0:
+            return None, "Limit must be greater than 0"
+        return value, None
+
+    def _normalize_entry(self, entry, value) -> None:
+        """Show the parsed value with its unit, so '1' becomes '1,00 MB/s'."""
+        if value is None:
+            return
+        try:
+            entry.delete(0, "end")
+            entry.insert(0, format_rate(value))
+        except Exception:
+            pass
+
     def _preset(self, v):
         try:
             self.chk_limit_in.select()
@@ -646,18 +671,18 @@ class InfoView(ctk.CTkFrame):
             return
         if not self.current_app_name:
             return
-        try:
-            li = parse_rate_string(self.entry_limit_in.get().strip()) if self.chk_limit_in.get() else None
-        except Exception:
-            li = None
-        if self.chk_limit_in.get() and not li:
-            li = 2 * 1024 * 1024
-        try:
-            lo = parse_rate_string(self.entry_limit_out.get().strip()) if self.chk_limit_out.get() else None
-        except Exception:
-            lo = None
-        if self.chk_limit_out.get() and not lo:
-            lo = 2 * 1024 * 1024
+        li, err = self._parse_entry(self.entry_limit_in, bool(self.chk_limit_in.get()),
+                                    2 * 1024 * 1024)
+        if err:
+            self._feedback(err, TEXT_RED)
+            return
+        lo, err = self._parse_entry(self.entry_limit_out, bool(self.chk_limit_out.get()),
+                                    2 * 1024 * 1024)
+        if err:
+            self._feedback(err, TEXT_RED)
+            return
+        self._normalize_entry(self.entry_limit_in, li)
+        self._normalize_entry(self.entry_limit_out, lo)
         rule = Rule(app_name=self.current_app_name, limit_in=li, limit_out=lo,
                     block_in=bool(self.chk_block_in.get()),
                     block_out=bool(self.chk_block_out.get()), enabled=True)
@@ -668,18 +693,21 @@ class InfoView(ctk.CTkFrame):
     def _apply_device(self):
         if self.on_global_changed is None:
             return
-        try:
-            li = parse_rate_string(self.entry_limit_in.get().strip()) if self.chk_limit_in.get() else None
-        except Exception:
-            li = None
-        if self.chk_limit_in.get() and not li:
-            li = 4 * 1024 * 1024
-        try:
-            lo = parse_rate_string(self.entry_limit_out.get().strip()) if self.chk_limit_out.get() else None
-        except Exception:
-            lo = None
-        if self.chk_limit_out.get() and not lo:
-            lo = 4 * 1024 * 1024
+        li, err = self._parse_entry(self.entry_limit_in, bool(self.chk_limit_in.get()),
+                                    4 * 1024 * 1024)
+        if err:
+            self._feedback(err, TEXT_RED)
+            return
+        lo, err = self._parse_entry(self.entry_limit_out, bool(self.chk_limit_out.get()),
+                                    4 * 1024 * 1024)
+        if err:
+            self._feedback(err, TEXT_RED)
+            return
+        self._normalize_entry(self.entry_limit_in, li)
+        self._normalize_entry(self.entry_limit_out, lo)
+        self._device_global = {"limit_in": li, "limit_out": lo,
+                               "block_in": bool(self.chk_block_in.get()),
+                               "block_out": bool(self.chk_block_out.get())}
         self.on_global_changed(li, lo, bool(self.chk_block_in.get()),
                                bool(self.chk_block_out.get()))
         self._feedback("✓ Device rule applied", TEXT_GREEN)
