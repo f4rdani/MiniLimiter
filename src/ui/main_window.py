@@ -870,6 +870,7 @@ class MainWindow(ctk.CTk):
                     apps, {r.app_name: r for r in self.rules_mgr.get_all_rules()},
                     unit_mode=self._unit_mode(),
                     global_limit_in=g.get("limit_in"),
+                    global_limit_out=g.get("limit_out"),
                     group_totals=group_totals,
                     total_rates=self.tracker.get_total_rates())
             elif self.current_tab == "Rules":
@@ -1093,6 +1094,7 @@ class MainWindow(ctk.CTk):
                 g = self.rules_mgr.get_global_limit()
                 self.activity_tab.update_rows(apps, all_rules, unit_mode=unit,
                                               global_limit_in=g.get("limit_in"),
+                                              global_limit_out=g.get("limit_out"),
                                               group_totals=group_totals,
                                               total_rates=self.tracker.get_total_rates())
             elif self.current_tab == "Application List":

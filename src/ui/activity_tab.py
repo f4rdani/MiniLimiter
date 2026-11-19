@@ -216,7 +216,7 @@ class ActivityTab(ctk.CTkFrame):
         self.tree.column("#0", width=210, minwidth=140, anchor="w", stretch=True)
         self.tree.column("dl", width=118, minwidth=90, anchor="e")
         self.tree.column("ul", width=118, minwidth=90, anchor="e")
-        self.tree.column("rule", width=130, minwidth=90, anchor="e")
+        self.tree.column("rule", width=190, minwidth=120, anchor="e")
 
         vs = ttk.Scrollbar(self.table_card, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=vs.set)
@@ -302,7 +302,7 @@ class ActivityTab(ctk.CTkFrame):
             self.tree.column("#0", width=210)
             self.tree.column("dl", width=118)
             self.tree.column("ul", width=118)
-            self.tree.column("rule", width=130)
+            self.tree.column("rule", width=190)
         except Exception:
             pass
 
@@ -360,6 +360,7 @@ class ActivityTab(ctk.CTkFrame):
     def update_rows(self, apps: List[ProcessInfo], rules: Dict[str, Rule],
                     unit_mode: str = "autoByte",
                     global_limit_in: Optional[int] = None,
+                    global_limit_out: Optional[int] = None,
                     group_totals: Optional[tuple] = None,
                     total_rates: Optional[tuple] = None):
         self.unit_mode = unit_mode
@@ -408,17 +409,15 @@ class ActivityTab(ctk.CTkFrame):
                     pass
         self.tree.set("__root__", "dl", fmt(root_dl, sum(a.total_dl for a in apps)))
         self.tree.set("__root__", "ul", fmt(root_ul, sum(a.total_ul for a in apps)))
+        root_badges = []
         if global_limit_in and global_limit_in > 0:
-            try:
-                self.tree.set("__root__", "rule",
-                              f"↓ {format_rate(global_limit_in, unit_mode)}")
-            except Exception:
-                pass
-        else:
-            try:
-                self.tree.set("__root__", "rule", "")
-            except Exception:
-                pass
+            root_badges.append(f"↓ {format_rate(global_limit_in, unit_mode)}")
+        if global_limit_out and global_limit_out > 0:
+            root_badges.append(f"↑ {format_rate(global_limit_out, unit_mode)}")
+        try:
+            self.tree.set("__root__", "rule", "  ".join(root_badges))
+        except Exception:
+            pass
         groups_unavailable = (
             total_rates is not None and not self.show_totals
             and (t_dl + t_ul) < 1.0 and (root_dl + root_ul) > 1.0

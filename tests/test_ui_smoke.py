@@ -421,6 +421,14 @@ class TestMainWindowSmoke(unittest.TestCase):
                 app.update()
                 self.assertEqual(app.traffic_chart.active_limit_bytes, 1024 * 1024)
                 self.assertEqual(app.traffic_chart.active_limit_out_bytes, 4 * 1024 * 1024)
+
+                app._switch_tab("Activity")
+                app.update()
+                app._periodic_refresh()
+                app.update()
+                root_status = app.activity_tab.tree.item("__root__")["values"][-1]
+                self.assertIn("↓ 1,00 MB/s", root_status)
+                self.assertIn("↑ 4,00 MB/s", root_status)
             finally:
                 try:
                     tracker.stop()
