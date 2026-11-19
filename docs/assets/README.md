@@ -1,28 +1,35 @@
-# Daftar screenshot yang perlu diambil manual
+# Daftar screenshot untuk website
 
-Ambil screenshot aplikasi **MiniLimiter (Administrator)** lalu simpan di folder ini dengan **nama file persis** di bawah. Format **PNG**. Disarankan ukuran jendela minimal `1280×760` dan crop hanya jendela aplikasi (atau Task Manager untuk item 8).
+Semua file diletakkan di folder ini dengan **nama persis** seperti di bawah (format PNG). Halaman `docs/index.html` otomatis menampil gambar yang sudah ada; untuk yang belum ada, placeholder akan tetap terlihat.
 
-> Pastikan aplikasi dijalankan dari `MiniLimiter.exe` dan prompt UAC diklik **Yes**, agar status bar menampilkan **Administrator** dan **Shaper active**.
+## Sudah tersedia ✅
 
-| # | Nama file | Tampilan yang harus terlihat |
+| File | Tampilan | Catatan |
 |---|---|---|
-| 1 | `01-activity.png` | Tab **Activity**: process tree, kolom **DL Rate / UL Rate / Rule Status**, baris **This PC** dengan limit `4,00 MB/s`, **Microsoft Edge** dengan `2,00 MB/s`, status bar **Administrator · Shaper active**. |
-| 2 | `02-info-limit-chart.png` | Masih di Activity, klik **Microsoft Edge** → panel kanan **Info View** menampilkan aturan **Limit In = 2 MB/s**, dan **Traffic Chart** dengan garis batas `2 MB/s`. |
-| 3 | `03-rules-all.png` | Tab **Rules**, filter **All**: terlihat baris **Limit** dan **Blocker** sekaligus (mis. `msedge.exe 2 MB/s`, `spotify.exe 512 KB/s`, `demo-blocker.exe`). |
-| 4 | `04-rules-blocker.png` | Tab **Rules**, filter **Blocker** aktif — hanya menampilkan aturan blocker. |
-| 5 | `05-applications.png` | Tab **Application List**: daftar semua proses berjalan dengan kolom **Status** (Online/Offline) dan path. |
-| 6 | `06-network.png` | Tab **Network**: adapter jaringan (Wi-Fi/Ethernet), alamat IP, gateway, dan status koneksi. |
-| 7 | `07-device-limit.png` | Tab Activity dengan baris **This PC** dipilih → Info View menampilkan **device-level limit 4 MB/s** + total DL/UL. |
-| 8 | `08-taskmanager.png` | **Task Manager → Details → MiniLimiter.exe**, kolom **CPU** dan **Memory** terlihat (ini dipakai di section “Light on resources”). |
-| 9 | `09-tray.png` *(opsional)* | Ikon tray MiniLimiter dengan tooltip hover yang menampilkan DL/UL live. |
+| `01-activity.png` | Activity — process tree, DL/UL, rule status, status bar **Administrator · Shaper active** | Dari `activity.png` |
+| `02-info-limit-chart.png` | Info View dengan **Limit In = 2 MB/s** + Traffic Chart dengan garis `limit 2,00 MB/s` | Dari `info view dan limit 2mb.png` |
+| `03-rules-all.png` | Tab Rules, filter **All**, baris `Limit · In · msedge.exe · 2,00 MB/s · Active` | Dari `rules tab.png` |
+| `05-applications.png` | Tab **Application List** — daftar proses + Status + Executable path | Dari `Screenshot 2026-11-19 112010.png` |
+| `06-network.png` | Tab Network — adapter, tipe, status | **IP sudah disensor** (ditutup kotak `* * * *`) dari `network.png` |
 
-## Tips
+> Penyensoran IP dilakukan dengan menimpa kolom IP pada gambar menggunakan Pillow. Alamat asli tidak tersimpan di file mana pun di repo.
 
-- Tekan **Win + Shift + S** untuk crop cepat, lalu simpan ke folder ini.
-- Tutup tab/browser lain yang tidak perlu agar fokus bersih.
-- Jika ingin menyembunyikan data pribadi (SSID/IP), blur sebelum menyimpan.
-- Setelah semua file ada, halaman `docs/index.html` otomatis menampilkan gambar tersebut — placeholder akan hilang dengan sendirinya.
+## Masih dibutuhkan ⬜
+
+| File | Tampilan yang harus terlihat |
+|---|---|
+| `04-rules-blocker.png` | Tab **Rules**, klik filter **Blocker** — hanya menampilkan aturan blocker. |
+| `07-device-limit.png` | Tab Activity dengan baris **This PC** dipilih → device-level limit + total DL/UL. |
+| `08-taskmanager.png` | **Task Manager → Details → MiniLimiter.exe**, kolom **CPU** dan **Memory** terlihat. Dipakai di section *Light on resources*. |
+| `09-tray.png` *(opsional)* | Ikon tray MiniLimiter + tooltip DL/UL saat di-hover. |
 
 ## Angka CPU / RAM
 
-Catat angka dari screenshot Task Manager dan beri tahu saya, saya akan isi ke section **Light on resources** di `docs/index.html`.
+Section *Light on resources* di `docs/index.html` masih menampilkan `—` untuk CPU dan RAM. Sebutkan angka dari Task Manager, saya akan mengisinya.
+
+## Tips screenshot berikutnya
+
+- Minimal ukuran jendela `1280×760`, crop hanya jendela aplikasi.
+- Jalankan EXE dengan UAC disetujui agar status bar bertuliskan **Administrator**.
+- Blur data pribadi lain (SSID, path user) kalau diperlukan sebelum menyimpan.
+- Setelah file ditambahkan, cukup `git push` — GitHub Pages deploy otomatis.
