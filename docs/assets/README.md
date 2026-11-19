@@ -12,6 +12,7 @@ Semua file diletakkan di folder ini dengan **nama persis** seperti di bawah (for
 | `04-blocker.png` | Activity filter **Limited**: Microsoft Edge berstatus **Blocked**, Info View mencentang **Block In + Block Out** | Dari `blocked.png` |
 | `05-applications.png` | Tab **Application List** — daftar proses + Status + Executable path | Dari screenshot Applications |
 | `06-network.png` | Tab Network — adapter, tipe, status | **IP sudah disensor** (ditutup `* * * *`) |
+| `08-taskmanager.png` | Task Manager → Details → `MiniLimiter.exe` | **CPU 0,4% · Memory 33,1 MB** |
 | `09-tray.png` | Ikon tray + tooltip **DL: 1,23 KB/s · UL: 2,56 KB/s · Limiter: On** | Dari `tray.png` |
 
 > Penyensoran IP dilakukan dengan menimpa kolom IP pada gambar menggunakan Pillow. Alamat asli tidak tersimpan di file mana pun di repo.
@@ -21,11 +22,10 @@ Semua file diletakkan di folder ini dengan **nama persis** seperti di bawah (for
 | File | Tampilan yang harus terlihat |
 |---|---|
 | `07-device-limit.png` | Tab Activity dengan baris **This PC** dipilih → limit total PC + total DL/UL. Ini yang dimaksud **Entire-PC cap** di website. |
-| `08-taskmanager.png` | **Task Manager → Details → MiniLimiter.exe**, kolom **CPU** dan **Memory** terlihat. Dipakai di section *Light on resources*. |
 
 ## Angka CPU / RAM
 
-Section *Light on resources* di `docs/index.html` masih menampilkan `—` untuk CPU dan RAM. Sebutkan angka dari Task Manager, saya akan mengisinya.
+Sudah diisi di `docs/index.html`: **CPU 0,4%** dan **Memory 33,1 MB** (working set), diambil dari `08-taskmanager.png`.
 
 ## Catatan istilah
 
