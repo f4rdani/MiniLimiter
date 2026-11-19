@@ -6,6 +6,8 @@
 
 MiniLimiter is a free, lightweight, per-application internet speed limiter (*traffic shaper & bandwidth limiter*) for Windows, with a NetLimiter-inspired layout (dark mode, 2-panel split, Info View, live traffic chart).
 
+🌐 **Website:** [f4rdani.github.io/MiniLimiter](https://f4rdani.github.io/MiniLimiter/)
+
 ---
 
 ## Features
@@ -21,6 +23,7 @@ MiniLimiter is a free, lightweight, per-application internet speed limiter (*tra
 - **Network List**: active adapters (Wi-Fi, Ethernet, IP address, SSID, gateway, connection state).
 - **Sortable, resizable tables**: click any column header to sort; drag splitters and column borders; `Reset view` restores the default layout.
 - **Auto UAC Elevation**: automatically requests Windows Administrator rights to load the traffic-shaping driver.
+- **Single-Instance Guard**: opening the app twice only focuses the existing window — no duplicate engine, rules or tray icons.
 
 ---
 

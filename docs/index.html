@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiniLimiter — Per-app bandwidth control for Windows</title>
+<meta name="description" content="MiniLimiter is a free, lightweight, per-application internet speed limiter for Windows with a NetLimiter-inspired interface. Limit downloads and uploads per app, block connections, and watch live traffic.">
+<meta name="theme-color" content="#071B33">
+<link rel="icon" type="image/png" href="assets/logo.png">
+
+<style>
+:root{
+  --navy:#071B33;
+  --navy2:#0B2A4A;
+  --cyan:#2FD6E8;
+  --teal:#1FB6A8;
+  --orange:#FF7A45;
+  --aqua:#A6ECFF;
+  --ink:#F4FAFF;
+  --muted:#A9C2D6;
+  --card:rgba(15,42,70,.55);
+  --border:rgba(47,214,232,.22);
+  --glow:0 18px 50px rgba(0,0,0,.35);
+  --radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Segoe UI",Inter,system-ui,-apple-system,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(900px 600px at 12% -5%,rgba(47,214,232,.16),transparent 60%),
+    radial-gradient(800px 600px at 92% 8%,rgba(255,122,69,.12),transparent 60%),
+    linear-gradient(160deg,var(--navy),var(--navy2) 55%,#061626);
+  min-height:100vh;overflow-x:hidden;line-height:1.6;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background-image:linear-gradient(rgba(166,236,255,.035) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(166,236,255,.035) 1px,transparent 1px);
+  background-size:56px 56px;mask-image:linear-gradient(to bottom,#000,transparent 75%);
+}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+.wrap{width:min(1160px,92vw);margin-inline:auto}
+
+/* ---------- nav ---------- */
+.nav{
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(18px);
+  background:rgba(7,27,51,.72);
+  border-bottom:1px solid var(--border);
+}
+.nav .wrap{display:flex;align-items:center;gap:22px;height:68px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:.2px}
+.brand img{width:34px;height:34px;border-radius:10px;box-shadow:0 0 22px rgba(47,214,232,.35)}
+.brand span small{display:block;font-size:10px;font-weight:600;color:var(--aqua);letter-spacing:1.6px;text-transform:uppercase}
+.nav-links{display:flex;gap:22px;margin-left:auto;font-size:14px;color:var(--muted)}
+.nav-links a:hover{color:var(--cyan)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:11px 20px;border-radius:11px;font-weight:700;font-size:14px;
+  border:1px solid transparent;cursor:pointer;transition:.2s ease;white-space:nowrap;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--cyan),var(--teal));
+  color:#041722;box-shadow:0 10px 28px rgba(47,214,232,.28);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(47,214,232,.4)}
+.btn-ghost{border-color:var(--border);color:var(--ink);background:rgba(255,255,255,.03)}
+.btn-ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+.menu-toggle{display:none;margin-left:auto;font-size:24px;background:none;border:0;color:var(--ink);cursor:pointer}
+
+/* ---------- hero ---------- */
+.hero{padding:88px 0 76px;text-align:center;position:relative}
+.hero .logo-hero{
+  width:150px;height:150px;margin:0 auto 26px;border-radius:34px;
+  filter:drop-shadow(0 18px 40px rgba(47,214,232,.35));
+  animation:float 6s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.pill{
+  display:inline-flex;align-items:center;gap:8px;padding:7px 15px;border-radius:999px;
+  border:1px solid var(--border);background:rgba(47,214,232,.08);
+  color:var(--aqua);font-size:12px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 12px var(--teal)}
+h1{
+  font-size:clamp(38px,6vw,70px);line-height:1.06;letter-spacing:-2px;margin:22px auto 18px;max-width:900px;
+}
+h1 em{font-style:normal;background:linear-gradient(100deg,var(--cyan),var(--aqua) 45%,var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:clamp(16px,2vw,20px);color:var(--muted);max-width:680px;margin:0 auto 32px}
+.hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.hero-meta{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;margin-top:38px;color:var(--muted);font-size:13px}
+.hero-meta b{color:var(--ink)}
+
+/* ---------- sections ---------- */
+section{padding:78px 0}
+.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;margin-bottom:12px}
+h2{font-size:clamp(28px,4.2vw,44px);letter-spacing:-1px;line-height:1.15}
+.sec-head{max-width:720px;margin-bottom:42px}
+.sec-head p{color:var(--muted);margin-top:14px;font-size:16px}
+
+/* ---------- features ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:18px}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:26px;box-shadow:var(--glow);backdrop-filter:blur(10px);transition:.22s ease;
+}
+.card:hover{transform:translateY(-5px);border-color:rgba(47,214,232,.55)}
+.card .ico{
+  width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(140deg,rgba(47,214,232,.18),rgba(255,122,69,.12));
+  border:1px solid var(--border);font-size:20px;margin-bottom:18px;color:var(--aqua);
+}
+.card h3{font-size:17px;margin-bottom:8px}
+.card p{font-size:14px;color:var(--muted)}
+.card .tag{display:inline-block;margin-top:14px;font-size:11px;color:var(--cyan);font-weight:700;letter-spacing:.5px}
+
+/* ---------- screenshots ---------- */
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:22px}
+.shot{background:rgba(8,28,50,.6);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:zoom-in;transition:.22s ease}
+.shot:hover{transform:translateY(-4px);border-color:var(--cyan)}
+.shot-frame{aspect-ratio:16/10;background:linear-gradient(135deg,#0a2238,#123a58);position:relative;display:grid;place-items:center;overflow:hidden}
+.shot-frame img{width:100%;height:100%;object-fit:cover;object-position:top left}
+.placeholder{display:none;flex-direction:column;align-items:center;gap:8px;text-align:center;color:var(--aqua);padding:24px}
+.placeholder .ph{font-size:34px;opacity:.7}
+.placeholder code{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--muted);background:rgba(0,0,0,.25);padding:5px 9px;border-radius:6px}
+.placeholder small{font-size:12px;color:var(--muted)}
+.shot figcaption{padding:16px 19px;font-size:14px;font-weight:600}
+.shot figcaption span{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:4px}
+.shot-num{color:var(--cyan);font-size:11px;font-weight:800;letter-spacing:1.6px;margin-right:8px}
+
+/* ---------- performance ---------- */
+.perf{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:26px 0}
+.metric{background:rgba(8,28,50,.7);border:1px solid var(--border);border-radius:16px;padding:22px}
+.metric b{display:block;font-size:34px;color:var(--cyan);letter-spacing:-1px}
+.metric span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:700}
+.perf-list{list-style:none;display:grid;gap:11px;margin-top:20px}
+.perf-list li{padding-left:26px;position:relative;color:var(--muted);font-size:14px}
+.perf-list li::before{content:"›";position:absolute;left:6px;color:var(--teal);font-weight:900}
+
+/* ---------- steps ---------- */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;counter-reset:s}
+.step{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:26px;position:relative}
+.step::before{counter-increment:s;content:counter(s,decimal-leading-zero);position:absolute;top:16px;right:18px;font-size:34px;font-weight:900;color:rgba(47,214,232,.16)}
+.step h3{font-size:16px;margin-bottom:8px}
+.step p{font-size:14px;color:var(--muted)}
+
+/* ---------- requirements / faq ---------- */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.req{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px}
+.req h3{margin-bottom:14px}
+.req ul{list-style:none;display:grid;gap:10px;color:var(--muted);font-size:14px}
+.req li::before{content:"✓";color:var(--teal);font-weight:800;margin-right:10px}
+details{background:rgba(8,28,50,.6);border:1px solid var(--border);border-radius:13px;padding:17px 20px;margin-bottom:12px;cursor:pointer}
+summary{font-weight:650;font-size:15px}
+details p{color:var(--muted);font-size:14px;margin-top:10px}
+code{font-family:ui-monospace,Consolas,monospace;color:var(--aqua);font-size:.92em}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--border);padding:34px 0;color:var(--muted);font-size:13px}
+footer .wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+footer .links{margin-left:auto;display:flex;gap:20px}
+footer a:hover{color:var(--cyan)}
+
+/* ---------- lightbox ---------- */
+.lightbox{position:fixed;inset:0;background:rgba(2,10,20,.92);z-index:100;display:none;align-items:center;justify-content:center;padding:4vw}
+.lightbox.open{display:flex}
+.lightbox img{max-width:100%;max-height:90vh;border-radius:14px;border:1px solid var(--border);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.lightbox button{position:absolute;top:20px;right:26px;font-size:34px;background:none;border:0;color:var(--ink);cursor:pointer}
+
+.reveal{opacity:0;transform:translateY(18px);transition:.6s ease}
+.reveal.show{opacity:1;transform:none}
+
+@media (max-width:820px){
+  .nav-links{display:none;position:absolute;top:68px;left:0;right:0;flex-direction:column;gap:0;
+    background:rgba(7,27,51,.97);padding:12px 5vw;border-bottom:1px solid var(--border)}
+  .nav-links.open{display:flex}
+  .nav-links a{padding:10px 0}
+  .menu-toggle{display:block}
+  .nav .btn-primary{margin-left:auto}
+  .perf,.two{grid-template-columns:1fr}
+  .hero{padding-top:56px}
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <img src="assets/logo.png" alt="MiniLimiter logo">
+      <span>MiniLimiter<small>Network control</small></span>
+    </a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#features">Features</a>
+      <a href="#screenshots">Screenshots</a>
+      <a href="#performance">Performance</a>
+      <a href="#how">How it works</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <button class="menu-toggle" aria-label="Menu" onclick="document.getElementById('navLinks').classList.toggle('open')">☰</button>
+    <a class="btn btn-primary" href="https://github.com/f4rdani/MiniLimiter/releases/download/v1.0.0/MiniLimiter-v1.0.0-portable.zip" target="_blank" rel="noopener">Download</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <img class="logo-hero" src="assets/logo.png" alt="MiniLimiter logo">
+      <span class="pill"><span class="dot"></span> v1.0.0 · Portable · Free</span>
+      <h1>Control every app's <em>bandwidth.</em></h1>
+      <p class="lede">A free, lightweight, per-application internet speed limiter for Windows. Cap downloads and uploads per app, block connections instantly, and watch live traffic — all in one clean, NetLimiter-inspired window.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://github.com/f4rdani/MiniLimiter/releases/download/v1.0.0/MiniLimiter-v1.0.0-portable.zip" target="_blank" rel="noopener">↓ Download portable ZIP</a>
+        <a class="btn btn-ghost" href="#features">Explore features</a>
+      </div>
+      <div class="hero-meta">
+        <span><b>No install</b> — extract &amp; run</span>
+        <span><b>Windows 10/11</b> 64-bit</span>
+        <span><b>WinDivert</b> traffic shaping</span>
+        <span><b>Free</b> personal &amp; commercial</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow">What it does</div>
+        <h2>Everything you need to tame your connection</h2>
+        <p>Real measurement and enforcement at the packet level, wrapped in an interface that stays out of your way.</p>
+      </div>
+      <div class="grid reveal">
+        <article class="card"><div class="ico">◎</div><h3>Live traffic monitor</h3><p>Watch every running application with real-time download and upload rates, refreshed twice per second.</p><span class="tag">ACTIVITY TAB</span></article>
+        <article class="card"><div class="ico">↓</div><h3>Per-app speed limits</h3><p>Cap a single app — for example, force <code>chrome.exe</code> to exactly 2 MB/s — without touching the rest of your network.</p><span class="tag">IN / OUT</span></article>
+        <article class="card"><div class="ico">▣</div><h3>Whole-PC limit</h3><p>Select <b>This PC</b> to cap the entire computer in one step, including a clear ceiling line on the chart.</p><span class="tag">DEVICE LEVEL</span></article>
+        <article class="card"><div class="ico">⏱</div><h3>Info View &amp; presets</h3><p>Click any app to inspect it and apply a rule instantly with presets: 512 KB/s, 1 MB/s, 2 MB/s or 5 MB/s.</p><span class="tag">ONE CLICK</span></article>
+        <article class="card"><div class="ico">⌁</div><h3>Live traffic chart</h3><p>Download in green, upload in orange, with a flat limit ceiling so you can see the cap actually working.</p><span class="tag">60-SECOND HISTORY</span></article>
+        <article class="card"><div class="ico">▤</div><h3>Rules list</h3><p>One place for every active rule. Filter by <b>All / Limit / Blocker</b>, then enable, disable or delete with a click.</p><span class="tag">FULL CONTROL</span></article>
+        <article class="card"><div class="ico">⛔</div><h3>Per-app blocker</h3><p>Drop an application's packets instantly. The blocker works on its own — it does not need the limiter switched on.</p><span class="tag">WINDIVERT</span></article>
+        <article class="card"><div class="ico">▦</div><h3>Application &amp; network lists</h3><p>Browse all foreground and background processes, plus active adapters with IP, gateway, SSID and connection state.</p><span class="tag">TWO EXTRA TABS</span></article>
+        <article class="card"><div class="ico">↕</div><h3>Sortable, resizable tables</h3><p>Sort any column, drag splitters and column borders, then hit <b>Reset view</b> to restore the default layout.</p><span class="tag">YOUR LAYOUT</span></article>
+        <article class="card"><div class="ico">⚡</div><h3>Portable &amp; auto-elevated</h3><p>A single folder you can copy anywhere. Double-click the EXE and Windows asks for admin rights automatically — no batch file needed.</p><span class="tag">NO INSTALL</span></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENSHOTS -->
+  <section id="screenshots">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow">Inside the app</div>
+        <h2>See it in action</h2>
+        <p>Every major view of MiniLimiter, captured from the real portable build running as Administrator. Click any image to zoom.</p>
+      </div>
+      <div class="shots reveal">
+
+        <figure class="shot">
+          <div class="shot-frame">
+            <img src="assets/01-activity.png" alt="Activity tab with live per-app download and upload rates" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="placeholder"><div class="ph">▤</div><code>assets/01-activity.png</code><small>Activity · process tree &amp; live rates</small></div>
+          </div>
+          <figcaption><span class="shot-num">01</span>Activity overview<span>Process tree, DL/UL rates and rule status badges</span></figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-frame">
+            <img src="assets/02-info-limit-chart.png" alt="Info View showing a 2 MB/s limit and the traffic chart" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="placeholder"><div class="ph">⌁</div><code>assets/02-info-limit-chart.png</code><small>Info View · 2 MB/s limit + chart</small></div>
+          </div>
+          <figcaption><span class="shot-num">02</span>Limit an app<span>Info View with a 2 MB/s cap and the flat ceiling line</span></figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-frame">
+            <img src="assets/03-rules-all.png" alt="Rules tab showing limits and blockers" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="placeholder"><div class="ph">▤</div><code>assets/03-rules-all.png</code><small>Rules · All filter</small></div>
+          </div>
+          <figcaption><span class="shot-num">03</span>All rules<span>Limit and blocker rules in one sortable table</span></figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-frame">
+            <img src="assets/04-rules-blocker.png" alt="Rules tab filtered to blockers" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="placeholder"><div class="ph">⛔</div><code>assets/04-rules-blocker.png</code><small>Rules · Blocker filter</small></div>
+          </div>
+          <figcaption><span class="shot-num">04</span>Blocker filter<span>See only the connections you are dropping</span></figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-frame">
+            <img src="assets/05-applications.png" alt="Application list tab" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="placeholder"><div class="ph">▦</div><code>assets/05-applications.png</code><small>Application List tab</small></div>
+          </div>
+          <figcaption><span class="shot-num">05</span>Application list<span>Every running process, its status and path</span></figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-frame">
+            <img src="assets/06-network.png" alt="Network list tab with adapters" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="placeholder"><div class="ph">⌁</div><code>assets/06-network.png</code><small>Network List tab</small></div>
+          </div>
+          <figcaption><span class="shot-num">06</span>Network list<span>Adapters, IP addresses, gateways and link state</span></figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-frame">
+            <img src="assets/07-device-limit.png" alt="Device-level limit on This PC" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="placeholder"><div class="ph">▣</div><code>assets/07-device-limit.png</code><small>This PC · device-wide cap</small></div>
+          </div>
+          <figcaption><span class="shot-num">07</span>Whole-PC cap<span>Limit the entire machine from the This PC row</span></figcaption>
+        </figure>
+
+        <figure class="shot">
+          <div class="shot-frame">
+            <img src="assets/09-tray.png" alt="System tray icon with live speed tooltip" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="placeholder"><div class="ph">◉</div><code>assets/09-tray.png</code><small>Tray icon · live DL/UL tooltip</small></div>
+          </div>
+          <figcaption><span class="shot-num">08</span>Tray mode<span>Close to tray; hover to read live speeds</span></figcaption>
+        </figure>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- PERFORMANCE -->
+  <section id="performance">
+    <div class="wrap perf">
+      <div class="reveal">
+        <div class="eyebrow">Light on resources</div>
+        <h2>Built to stay out of your way</h2>
+        <p class="sec-head" style="margin-bottom:0">MiniLimiter uses a single WinDivert handle and a cached port-to-PID tracker, so shaping and measuring happen at the same point — once per packet, no duplicate work.</p>
+        <div class="metrics">
+          <div class="metric"><b id="cpuValue">—</b><span>CPU usage</span></div>
+          <div class="metric"><b id="ramValue">—</b><span>Memory (working set)</span></div>
+        </div>
+        <ul class="perf-list">
+          <li>Single packet handle for both inbound and outbound traffic</li>
+          <li>Tracker cache keeps process lookup cheap — designed for &lt; 1% CPU</li>
+          <li>Exactly-once counting: the limit you set is the speed you see</li>
+          <li>No background service, no installer, no startup entries</li>
+        </ul>
+        <p style="margin-top:18px;font-size:13px;color:var(--muted)">Numbers come from Windows Task Manager → Details → <code>MiniLimiter.exe</code> while the limiter is active.</p>
+      </div>
+      <figure class="shot reveal" style="cursor:default">
+        <div class="shot-frame" style="aspect-ratio:16/9">
+          <img src="assets/08-taskmanager.png" alt="Task Manager showing MiniLimiter CPU and memory usage" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="placeholder"><div class="ph">▥</div><code>assets/08-taskmanager.png</code><small>Task Manager · Details · CPU &amp; Memory</small></div>
+        </div>
+        <figcaption>Measured on a real machine<span>Drop in the Task Manager screenshot to complete this section</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow">Get started</div>
+        <h2>From download to limited in under a minute</h2>
+      </div>
+      <div class="steps reveal">
+        <article class="step"><h3>Download &amp; extract</h3><p>Grab the portable ZIP from GitHub Releases and extract it anywhere — no installer, no dependencies.</p></article>
+        <article class="step"><h3>Double-click the EXE</h3><p>Windows asks for Administrator rights; accept to load the WinDivert driver and enable real shaping.</p></article>
+        <article class="step"><h3>Pick an application</h3><p>Click a process in Activity, or the This PC row to limit the whole computer.</p></article>
+        <article class="step"><h3>Set a limit</h3><p>Check In (download) or Out (upload), type a speed or use a preset, then apply. Watch the chart flatten.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- REQUIREMENTS + FAQ -->
+  <section id="faq">
+    <div class="wrap two">
+      <div class="req reveal">
+        <h3>System requirements</h3>
+        <ul>
+          <li>Windows 10 or Windows 11, 64-bit</li>
+          <li>Administrator rights (to load WinDivert)</li>
+          <li>No Python needed for the portable build</li>
+          <li>Optional: Python 3.10+ if running from source</li>
+        </ul>
+        <h3 style="margin-top:26px">Privacy</h3>
+        <ul>
+          <li>All rules stay in <code>config/rules.json</code> beside the EXE</li>
+          <li>No account, no telemetry, no cloud service</li>
+        </ul>
+      </div>
+      <div class="reveal">
+        <details open><summary>Does it work without admin rights?</summary><p>Yes, in monitoring mode. You will see adapter totals, but per-app speeds and traffic shaping need the WinDivert driver, which requires Administrator privileges.</p></details>
+        <details><summary>Will two copies running cause problems?</summary><p>No. MiniLimiter uses a single-instance guard: a second launch simply focuses the window that is already open, so you never get duplicate engines or tray icons.</p></details>
+        <details><summary>How accurate is the speed cap?</summary><p>Packets are measured exactly where they are shaped, so a 4 MB/s cap shows about 4 MB/s in a speed test. A small 1–3% difference from NetLimiter is expected because they measure at different network layers.</p></details>
+        <details><summary>Can I move the folder to another PC?</summary><p>Yes. The release is fully portable — rules and logs live next to the EXE, so copying the folder copies your setup.</p></details>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 MiniLimiter · Free for personal and commercial use.</span>
+    <div class="links">
+      <a href="https://github.com/f4rdani/MiniLimiter" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/f4rdani/MiniLimiter/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/f4rdani/MiniLimiter/blob/main/README.md" target="_blank" rel="noopener">README</a>
+    </div>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeBox()">
+  <button aria-label="Close" onclick="closeBox()">×</button>
+  <img id="lightboxImg" src="" alt="Screenshot preview">
+</div>
+
+<script>
+function closeBox(){document.getElementById('lightbox').classList.remove('open')}
+document.querySelectorAll('.shot').forEach(function(shot){
+  if(shot.querySelector('figcaption') && !shot.closest('#performance')){
+    shot.addEventListener('click',function(){
+      var img=shot.querySelector('img');
+      if(!img || !img.naturalWidth) return;
+      document.getElementById('lightboxImg').src=img.src;
+      document.getElementById('lightboxImg').alt=img.alt;
+      document.getElementById('lightbox').classList.add('open');
+    });
+  }
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeBox()});
+
+var io=new IntersectionObserver(function(entries){
+  entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('show');io.unobserve(en.target)}})
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
+</script>
+</body>
+</html>

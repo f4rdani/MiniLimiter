@@ -19,6 +19,7 @@ from src.core.rules_manager import RulesManager
 from src.core.shaper import TrafficShaper
 from src.core.tracker import NetworkTracker
 from src.ui.main_window import MainWindow
+from src.utils import single_instance
 from src.utils.elevation import elevate_and_restart, is_admin
 from src.utils.paths import app_base, is_frozen
 
@@ -57,6 +58,13 @@ def main():
             return
         except Exception as e:
             logger.warning(f"Could not automatically elevate: {e}")
+
+    # Only one copy may own the WinDivert engine. A second launch focuses the
+    # existing window instead of creating duplicate engines/tray icons.
+    if not single_instance.acquire():
+        logger.info("MiniLimiter is already running; focusing the existing window.")
+        single_instance.focus_existing()
+        return
 
     # State lives beside the EXE in portable builds (source mode: project root).
     config_dir = app_base() / "config"
@@ -121,6 +129,7 @@ def main():
                 app.destroy()
             except Exception:
                 pass
+        single_instance.release()
         logger.info("Shutdown complete.")
 
     app.protocol("WM_DELETE_WINDOW", on_closing)

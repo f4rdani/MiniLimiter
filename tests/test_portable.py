@@ -1,5 +1,6 @@
 """Regression tests for the portable (PyInstaller) release helpers."""
 
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -71,6 +72,21 @@ class TestFrozenElevation(unittest.TestCase):
              mock.patch.object(sys, "argv", [str(exe)]), \
              mock.patch.object(elev, "is_admin", return_value=False):
             self.assertIsNone(elev.elevate_and_restart())
+
+
+class TestSingleInstance(unittest.TestCase):
+    def test_duplicate_launch_is_blocked(self):
+        sys.path.insert(0, str(ROOT))
+        from src.utils import single_instance as si
+
+        unique_name = r"Local\MiniLimiter_Test_" + os.urandom(4).hex()
+        with mock.patch.object(si, "MUTEX_NAME", unique_name):
+            si.release()
+            self.assertTrue(si.acquire())
+            self.assertFalse(si.acquire())
+            si.release()
+            self.assertTrue(si.acquire())  # released mutex can be re-acquired
+            si.release()
 
 
 class TestBuildAssets(unittest.TestCase):
