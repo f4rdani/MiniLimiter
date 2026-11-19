@@ -5,33 +5,52 @@ import os
 import sys
 from pathlib import Path
 
-# Ensure project root is in sys.path
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+# Ensure project root (or the PyInstaller bundle root) is in sys.path.
+if getattr(sys, "frozen", False):
+    # In a frozen build __file__ may point at src/main.py inside _MEIPASS;
+    # the bootloader already adds _MEIPASS, but add it explicitly to be safe.
+    _ROOT = Path(getattr(sys, "_MEIPASS", None) or Path(sys.executable).resolve().parent)
+else:
+    _ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 from src.core.rules_manager import RulesManager
 from src.core.shaper import TrafficShaper
 from src.core.tracker import NetworkTracker
 from src.ui.main_window import MainWindow
 from src.utils.elevation import elevate_and_restart, is_admin
+from src.utils.paths import app_base, is_frozen
 
-# Setup clean logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] (%(name)s) %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-    ],
-)
+
+def _setup_logging() -> None:
+    """Console in source mode, log file next to the EXE in windowed builds."""
+    handlers = []
+    if is_frozen():
+        try:
+            handlers.append(logging.FileHandler(app_base() / "MiniLimiter.log", encoding="utf-8"))
+        except Exception:
+            handlers.append(logging.NullHandler())
+    else:
+        handlers.append(logging.StreamHandler(sys.stdout))
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] (%(name)s) %(message)s",
+        handlers=handlers,
+    )
+
+
+_setup_logging()
 logger = logging.getLogger("MiniLimiter")
 
 
 def main():
     logger.info("Initializing MiniLimiter...")
 
-    # Optional auto-elevation flag: if user launches with '--elevate' or batch runner
-    if "--elevate" in sys.argv and not is_admin():
+    # Portable builds request UAC automatically on double-click (no .bat needed).
+    # '--no-elevate' is kept for diagnostics; source mode still needs '--elevate'.
+    auto_elevate = is_frozen() and "--no-elevate" not in sys.argv
+    if not is_admin() and (auto_elevate or "--elevate" in sys.argv):
         logger.info("Requesting UAC Administrator elevation...")
         try:
             elevate_and_restart()
@@ -39,8 +58,8 @@ def main():
         except Exception as e:
             logger.warning(f"Could not automatically elevate: {e}")
 
-    # Paths
-    config_dir = PROJECT_ROOT / "config"
+    # State lives beside the EXE in portable builds (source mode: project root).
+    config_dir = app_base() / "config"
     rules_file = config_dir / "rules.json"
 
     # Core components (tick 0.5s agar realtime, history 120 = 60 detik)

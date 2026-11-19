@@ -3,11 +3,12 @@
 import ctypes
 import os
 import struct
-from pathlib import Path
 from typing import Optional, Tuple
 
-# Path to WinDivert.dll in bin/ directory
-BIN_DIR = Path(__file__).resolve().parent.parent.parent / "bin"
+from src.utils.paths import resource_path
+
+# WinDivert DLL + driver live in bin/ (bundled next to each other in releases).
+BIN_DIR = resource_path("bin")
 DLL_PATH = BIN_DIR / "WinDivert.dll"
 
 # WinDivert constants

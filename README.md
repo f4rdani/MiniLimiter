@@ -1,5 +1,9 @@
 # MiniLimiter
 
+<p align="center">
+  <img src="logo%20netlimiter.png" alt="MiniLimiter logo" width="180">
+</p>
+
 MiniLimiter is a free, lightweight, per-application internet speed limiter (*traffic shaper & bandwidth limiter*) for Windows, with a NetLimiter-inspired layout (dark mode, 2-panel split, Info View, live traffic chart).
 
 ---
@@ -23,12 +27,33 @@ MiniLimiter is a free, lightweight, per-application internet speed limiter (*tra
 ## System Requirements
 
 - Windows 10 or Windows 11 (64-bit)
-- Python 3.10+
+- No Python required for the portable build (Python 3.10+ only for development)
 - Administrator rights (required to load the *WinDivert* driver)
 
 ---
 
 ## Getting Started
+
+### Portable release (recommended)
+
+1. Download `MiniLimiter-vX.Y.Z-portable.zip` from the GitHub **Releases** page.
+2. Extract it anywhere (e.g. `C:\Tools\MiniLimiter`).
+3. Double-click **`MiniLimiter.exe`** — no `.bat` needed. Windows asks for Administrator rights (UAC); accept to enable traffic shaping.
+4. If UAC is declined, the app still opens in monitoring mode.
+
+All state (`config/rules.json`, `MiniLimiter.log`) is written **beside the EXE**, so the folder can be moved/copied to another PC without losing rules.
+
+Building your own release:
+
+```powershell
+pip install -r requirements.txt -r requirements-build.txt
+python build_portable.py --version v1.0.0
+# output: dist/MiniLimiter-v1.0.0-portable.zip
+```
+
+Pushing a `v*` tag (e.g. `v1.0.0`) builds and publishes the ZIP automatically via `.github/workflows/release.yml`.
+
+### Run from source (development)
 
 ```powershell
 git clone https://github.com/f4rdani/MiniLimiter.git
@@ -36,26 +61,11 @@ cd MiniLimiter
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
+python src\main.py
 ```
 
-### Run (recommended)
-
-Double-click:
-
-```
-run_app.bat
-```
-
-It requests Administrator rights (Windows UAC) and launches the app with full traffic shaping.
-
-### Run from a terminal (PowerShell / Command Prompt)
-
-Open a terminal **as Administrator**, then:
-
-```powershell
-cd MiniLimiter
-.\venv\Scripts\python src\main.py
-```
+`run_app.bat` remains as a development-only launcher that auto-requests admin.
+Alternatively, open a terminal **as Administrator** and run `.\venv\Scripts\python src\main.py`.
 
 Without Administrator rights the app still runs in monitoring mode (per-app speeds unavailable, totals come from the network adapter counters).
 
@@ -63,7 +73,7 @@ Without Administrator rights the app still runs in monitoring mode (per-app spee
 
 ## Limiting Chrome downloads to 2 MB/s
 
-1. Open the app via `run_app.bat`.
+1. Open the app by double-clicking `MiniLimiter.exe` (portable) or `run_app.bat` (development).
 2. In the **Activity** tab, click `Google Chrome` (or `chrome.exe`).
 3. In the right-hand **Info View** panel:
    - Under **Limit**, check the box in the **In (Download)** column.
@@ -102,10 +112,16 @@ MiniLimiter/
 │   │   └── traffic_chart.py   # Real-time canvas chart
 │   └── utils/
 │       ├── appinfo.py         # EXE version info & computer name helpers
-│       ├── elevation.py       # Windows UAC admin helper
-│       └── formatters.py      # Unit formatting (autoByte, KB/s, MB/s, Mbps)
+│       ├── elevation.py       # Windows UAC admin helper (frozen-aware)
+│       ├── formatters.py      # Unit formatting (autoByte, KB/s, MB/s, Mbps)
+│       └── paths.py           # Portable resource/state path helpers
 ├── tests/                     # Unit + UI smoke tests
-├── run_app.bat                # Launcher with Admin UAC
+├── .github/workflows/release.yml # Build + publish ZIP on v* tags
+├── build_portable.py          # PyInstaller onedir build + ZIP
+├── requirements-build.txt     # Build-only dependencies (PyInstaller)
+├── logo netlimiter.png        # App logo (window, toolbar, tray, EXE icon)
+├── MiniLimiter.ico            # Generated from the PNG for the EXE/window
+├── run_app.bat                # Development-only launcher with Admin UAC
 └── README.md
 ```
 

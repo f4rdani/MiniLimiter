@@ -9,6 +9,12 @@ venv/
 
 # Runtime / local state
 config/rules.json
+MiniLimiter.log
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
 
 # Docs: abaikan semua markdown kecuali README.md
 *.md

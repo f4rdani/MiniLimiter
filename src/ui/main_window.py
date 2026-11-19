@@ -33,6 +33,7 @@ from src.ui.traffic_chart import TrafficChart
 from src.utils.appinfo import get_file_info
 from src.utils.elevation import elevate_and_restart, is_admin
 from src.utils.formatters import format_rate
+from src.utils.paths import resource_path
 
 logger = logging.getLogger("MiniLimiter.UI")
 
@@ -71,6 +72,7 @@ class MainWindow(ctk.CTk):
         self.geometry("1280x760")
         self.minsize(1024, 620)
         self.configure(fg_color=BG_APP)
+        self._set_window_icon()
 
         self._build_toolbar()
         self._build_tabbar()
@@ -85,6 +87,16 @@ class MainWindow(ctk.CTk):
         self.bind("<Unmap>", self._on_minimize_to_tray)
         self._narrow = None
         self.bind("<Configure>", self._on_window_resize)
+
+    # ---------------- branding ----------------
+    def _set_window_icon(self) -> None:
+        """Use the supplied logo for the window/taskbar icon (best-effort)."""
+        try:
+            ico = resource_path("MiniLimiter.ico")
+            if ico.exists():
+                self.iconbitmap(str(ico))
+        except Exception as e:
+            logger.debug(f"Window icon unavailable: {e}")
 
     # ---------------- responsive layout ----------------
     def _on_window_resize(self, event):
@@ -343,8 +355,22 @@ class MainWindow(ctk.CTk):
                             fg_color=TAB_ACTIVE_BG)
         logo.pack(side="left")
         logo.pack_propagate(False)
-        ctk.CTkLabel(logo, text="M", font=(FONT_FAMILY, 16, "bold"),
-                     text_color="#101318").place(relx=0.5, rely=0.5, anchor="center")
+        self._brand_image = None
+        try:
+            from PIL import Image
+            logo_png = resource_path("logo netlimiter.png")
+            if logo_png.exists():
+                pil_img = Image.open(logo_png).convert("RGBA")
+                self._brand_image = ctk.CTkImage(light_image=pil_img, dark_image=pil_img,
+                                                size=(32, 32))
+        except Exception as e:
+            logger.debug(f"Brand logo unavailable: {e}")
+        if self._brand_image is not None:
+            ctk.CTkLabel(logo, image=self._brand_image, text="").place(
+                relx=0.5, rely=0.5, anchor="center")
+        else:
+            ctk.CTkLabel(logo, text="M", font=(FONT_FAMILY, 16, "bold"),
+                         text_color="#101318").place(relx=0.5, rely=0.5, anchor="center")
         brand_txt = ctk.CTkFrame(brand, fg_color="transparent")
         brand_txt.pack(side="left", padx=(9, 0))
         self._brand_txt = brand_txt

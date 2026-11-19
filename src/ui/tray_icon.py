@@ -32,9 +32,20 @@ except Exception as e:
 
 
 def create_tray_image(size: int = 64):
-    """Build a small MiniLimiter icon (dark bg, green ↓ + orange ↑)."""
+    """Use the supplied logo for the tray icon; fall back to a drawn badge."""
     if not _HAS_PIL:
         return None
+    try:
+        from src.utils.paths import resource_path
+        logo = resource_path("logo netlimiter.png")
+        if logo.exists():
+            with Image.open(logo) as src:
+                img = src.convert("RGBA")
+            resample = getattr(Image, "Resampling", Image).LANCZOS
+            return img.resize((size, size), resample)
+    except Exception as e:
+        logger.debug(f"Logo tray unavailable, using fallback icon: {e}")
+
     img = Image.new("RGBA", (size, size), (30, 30, 30, 255))
     d = ImageDraw.Draw(img)
     # lime circle background
@@ -46,8 +57,6 @@ def create_tray_image(size: int = 64):
         d.text((size // 2, size // 2), "M", fill=(0, 0, 0, 255), anchor="mm")
     except Exception:
         pass
-    # download (green->white?) keep simple; arrows drawn as small triangles
-    # down arrow bottom-left, up arrow top-right for recognizability
     return img
 
 
